@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Isovistas Urbanas 2D / 3D • Corredor Norte-Sur Morelia</title>
+    <meta name="description" content="Visualizador cartográfico interactivo 2D y 3D para el análisis de isovistas urbanas, envolvente visual y alturas de edificios en Morelia, Michoacán.">
+
+    <!-- Tipografía Moderna: Inter de Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <!-- MapLibre GL JS v5.3.0 (Librería de mapas vectoriales y 3D de alto rendimiento) -->
+    <script src="https://unpkg.com/maplibre-gl@5.3.0/dist/maplibre-gl.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@5.3.0/dist/maplibre-gl.css"/>
+
+    <!-- Hoja de estilos personalizada con estética Dark Glassmorphism -->
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+    <!-- 1. Pantalla de Carga Inicial con Spinner y Mensajes de Progreso -->
+    <div id="loading-overlay">
+        <div class="spinner"></div>
+        <div class="loading-text">Iniciando Mapa Interactivo 2D / 3D...</div>
+        <div class="loading-subtext">Cargando 24,000+ edificios y modelos de elevación</div>
+    </div>
+
+    <!-- 2. Contenedor del Mapa MapLibre (100vw x 100vh) -->
+    <div id="map"></div>
+
+    <!-- 3. Encabezado Flotante Superior (Pill Banner) -->
+    <header class="top-header-pill">
+        <h1>Corredor Norte-Sur Morelia</h1>
+        <span class="pill-badge">Isovistas 2D / 3D</span>
+    </header>
+
+
+    <!-- 5. Panel Lateral Flotante de Control (Derecha) -->
+    <aside id="main-panel">
+        
+        <!-- Encabezado del Panel -->
+        <div class="panel-header">
+            <div class="panel-title">
+                <h2>Isovistas y Relieve</h2>
+                <p>Morelia Norte-Sur • IMPLAN</p>
+            </div>
+            <button class="btn-toggle-panel" id="btn-toggle-panel" title="Minimizar panel">−</button>
+        </div>
+
+        <!-- Contenido Desplegable del Panel -->
+        <div class="panel-content" id="panel-content">
+            
+            <!-- Tarjetas de Estadísticas del Recorrido -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <span class="stat-value" id="stat-route-len">4.7 km</span>
+                    <span class="stat-label">Recorrido</span>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-value" id="stat-buildings-count">24,714 edif</span>
+                    <span class="stat-label">Entorno</span>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-value">28.1 ha</span>
+                    <span class="stat-label">Envolvente</span>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-value" id="stat-landmarks-count">26 hitos</span>
+                    <span class="stat-label">Referencias</span>
+                </div>
+            </div>
+
+            <!-- SECCIÓN 0: MAPA BASE -->
+            <div class="section-title">
+                <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"></path></svg>
+                Mapa Base
+            </div>
+            <div class="basemap-selector-grid">
+                <button class="btn-basemap active" id="btn-bm-dark" title="Mapa vector oscuro sin distracciones">
+                    <span>🌙</span> Oscuro
+                </button>
+                <button class="btn-basemap" id="btn-bm-satellite" title="Fotografía satelital de alta resolución (ESRI)">
+                    <span>🛰️</span> Satélite
+                </button>
+            </div>
+
+            <!-- SECCIÓN 1: MODOS Y VISUALIZACIÓN 3D -->
+            <div class="section-title">
+                <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 10l-2 1m0 0l-2-1m2 1v2.5M20 7l-2 1m2-1l-2-1m2 1v2.5M14 4l-2-1-2 1M4 7l2-1M4 7l2 1M4 7v2.5M12 21l-2-1m2 1l2-1m-2 1v-2.5M6 18l-2-1v-2.5M18 18l2-1v-2.5"></path></svg>
+                Visualización 3D y Relieve
+            </div>
+
+            <!-- Switch Terreno 3D -->
+            <div class="control-item highlight-terrain" onclick="document.getElementById('chk-terreno-3d').click()">
+                <div class="item-info">
+                    <span class="badge-icon">⛰️</span>
+                    <div>
+                        <span>Terreno 3D (Relieve DEM)</span>
+                        <small>Elevación topográfica real (DEM)</small>
+                    </div>
+                </div>
+                <label class="switch" onclick="event.stopPropagation()">
+                    <input type="checkbox" id="chk-terreno-3d">
+                    <span class="slider emerald"></span>
+                </label>
+            </div>
+
+            <!-- Botones Exageración de Terreno -->
+            <div class="exag-btn-row" id="row-terrain-exag">
+                <span class="exag-label">Relieve:</span>
+                <div class="exag-btn-group">
+                    <button type="button" class="btn-exag active" id="btn-terr-1x" data-type="terrain" data-val="1.0" title="Relieve topográfico real (1x)">Real (1x)</button>
+                    <button type="button" class="btn-exag" id="btn-terr-2x" data-type="terrain" data-val="2.0" title="Exageración de relieve al doble (2x)">2x</button>
+                    <button type="button" class="btn-exag" id="btn-terr-3x" data-type="terrain" data-val="3.0" title="Exageración de relieve al triple (3x)">3x</button>
+                </div>
+            </div>
+
+            <!-- Switch Edificios 3D (Extrusión) -->
+            <div class="control-item highlight-3d" onclick="document.getElementById('chk-edificios-3d').click()">
+                <div class="item-info">
+                    <span class="badge-icon">🏢</span>
+                    <div>
+                        <span>Edificios 3D (Extrusión)</span>
+                        <small>Extruidos por campo 'altura'</small>
+                    </div>
+                </div>
+                <label class="switch" onclick="event.stopPropagation()">
+                    <input type="checkbox" id="chk-edificios-3d">
+                    <span class="slider cyan"></span>
+                </label>
+            </div>
+
+            <!-- Botones Exageración de Edificios -->
+            <div class="exag-btn-row" id="row-buildings-exag">
+                <span class="exag-label">Altura:</span>
+                <div class="exag-btn-group">
+                    <button type="button" class="btn-exag active" id="btn-bld-1x" data-type="buildings" data-val="1.0" title="Altura real de edificios (1x)">Real (1x)</button>
+                    <button type="button" class="btn-exag" id="btn-bld-2x" data-type="buildings" data-val="2.0" title="Exageración de altura al doble (2x)">2x</button>
+                    <button type="button" class="btn-exag" id="btn-bld-3x" data-type="buildings" data-val="3.0" title="Exageración de altura al triple (3x)">3x</button>
+                </div>
+            </div>
+
+            <!-- Leyenda Cromática de Altura de Edificios 3D -->
+            <div class="height-legend-box">
+                <div class="height-legend-header">
+                    <span>Altura de Edificaciones</span>
+                    <span style="color:#38bdf8;">campo 'altura'</span>
+                </div>
+                <div class="height-legend-gradient"></div>
+                <div class="height-legend-labels">
+                    <span>0-3 m</span>
+                    <span>6 m</span>
+                    <span>12 m</span>
+                    <span>20 m</span>
+                    <span>35 m+</span>
+                </div>
+            </div>
+
+            <!-- Botones Rápidos de Perspectiva de Cámara -->
+            <div class="section-title">
+                <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
+                Perspectiva de Cámara
+            </div>
+            <div class="camera-actions-row">
+                <button class="btn-cam-action" id="btn-cam-2d" title="Vista Cenital (90° Top-Down)">
+                    📐 Vista 2D
+                </button>
+                <button class="btn-cam-action" id="btn-cam-3d" title="Perspectiva Oblicua (58°)">
+                    🌐 Perspectiva 3D
+                </button>
+            </div>
+            <button class="btn-cam-action" id="btn-cam-fit" style="width: 100%; margin-bottom: 12px;" title="Ajustar zoom a toda la ruta">
+                🚶 Encuadrar Recorrido Completo
+            </button>
+
+            <!-- SECCIÓN 2: CONTROL DE CAPAS VECTORIALES -->
+            <div class="section-title">
+                <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
+                Capas del Estudio
+            </div>
+
+            <!-- Envolvente Visual -->
+            <div class="control-item" onclick="document.getElementById('chk-envolvente').click()">
+                <div class="item-info">
+                    <div class="legend-badge" style="background: rgba(239, 68, 68, 0.6); border: 1px solid #f87171;"></div>
+                    <span>Envolvente Visual (28.1 ha)</span>
+                </div>
+                <label class="switch" onclick="event.stopPropagation()">
+                    <input type="checkbox" id="chk-envolvente" checked>
+                    <span class="slider red"></span>
+                </label>
+            </div>
+
+            <!-- Ruta Peatonal -->
+            <div class="control-item" onclick="document.getElementById('chk-ruta').click()">
+                <div class="item-info">
+                    <div class="legend-badge" style="background:#38bdf8; box-shadow: 0 0 8px rgba(56, 189, 248, 0.6);"></div>
+                    <span>Ruta Peatonal (4.7 km)</span>
+                </div>
+                <label class="switch" onclick="event.stopPropagation()">
+                    <input type="checkbox" id="chk-ruta" checked>
+                    <span class="slider"></span>
+                </label>
+            </div>
+
+            <!-- Edificaciones Urbanas (2D) -->
+            <div class="control-item" onclick="document.getElementById('chk-edificios').click()">
+                <div class="item-info">
+                    <div class="legend-badge" style="background:#1e293b; border: 1px solid #475569;"></div>
+                    <span>Edificaciones Urbanas</span>
+                </div>
+                <label class="switch" onclick="event.stopPropagation()">
+                    <input type="checkbox" id="chk-edificios" checked>
+                    <span class="slider"></span>
+                </label>
+            </div>
+
+            <!-- Puntos de Referencia -->
+            <div class="control-item" onclick="document.getElementById('chk-referencias').click()">
+                <div class="item-info">
+                    <div class="legend-badge badge-point" style="background:#fbbf24; border: 2px solid #0f172a;"></div>
+                    <span>Puntos de Referencia (26)</span>
+                </div>
+                <label class="switch" onclick="event.stopPropagation()">
+                    <input type="checkbox" id="chk-referencias" checked>
+                    <span class="slider amber"></span>
+                </label>
+            </div>
+
+            <!-- SECCIÓN 3: HITOS URBANOS Y BÚSQUEDA -->
+            <div class="section-title">
+                <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                Explorar Hitos Urbanos
+            </div>
+
+            <!-- Buscador en vivo de Hitos -->
+            <div class="landmarks-search-box">
+                <input type="text" id="input-search-landmarks" placeholder="Buscar hito por nombre o #..." autocomplete="off">
+            </div>
+
+            <!-- Lista interactiva de hitos con scroll -->
+            <div class="landmarks-list-container" id="landmarks-list">
+                <!-- Se llena dinámicamente con JavaScript -->
+            </div>
+
+            <!-- Botón para mostrar todos los nombres flotantes -->
+            <button class="btn-toggle-names" id="btn-toggle-names">
+                <span>🏷️</span> Mostrar Nombres de Hitos (Off)
+            </button>
+
+            <!-- SECCIÓN 4: ANIMACIÓN DE RECORRIDO E ISOVISTAS -->
+            <div class="section-title">
+                <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                Animación del Recorrido
+            </div>
+
+            <!-- Botón para alternar visibilidad de la barra de animación -->
+            <button class="btn-toggle-anim-bar" id="btn-toggle-anim-player" title="Mostrar u ocultar la barra flotante de animación">
+                <span>🎬</span> Activar Modo Animación
+            </button>
+
+        </div>
+    </aside>
+
+    <!-- 6. Botón Flotante para Desplegar Animación (Visible cuando el reproductor está minimizado) -->
+    <button type="button" id="btn-anim-pill-launcher" class="anim-pill-launcher" title="Abrir controles de animación y explorar isovistas dinámicas">
+        <span class="pill-icon">🎬</span>
+        <span class="pill-text">Animación del Recorrido</span>
+        <span class="pill-badge">Isovistas</span>
+    </button>
+
+    <!-- 7. Barra Flotante de Control de Animación de Isovistas (Inicia minimizada por defecto) -->
+    <div id="anim-player-bar" class="anim-player-floating hidden">
+        
+        <!-- Fila 1: Telemetría y Métricas en Tiempo Real -->
+        <div class="anim-telemetry-row">
+            <div class="anim-telemetry-chip chip-dist">
+                <span class="chip-icon">🚶</span>
+                <span class="chip-val" id="anim-dist-val">0.00 km</span>
+                <span class="chip-sub" id="anim-pct-val">(0%)</span>
+            </div>
+            <div class="anim-telemetry-chip chip-iso">
+                <span class="chip-icon">👁️</span>
+                <span class="chip-label">Isovista:</span>
+                <span class="chip-val" id="anim-iso-val">19,503 m²</span>
+            </div>
+            <div class="anim-telemetry-chip chip-area">
+                <span class="chip-icon">🗺️</span>
+                <span class="chip-label">Acumulada:</span>
+                <span class="chip-val" id="anim-acum-val">1.95 ha</span>
+            </div>
+            <div class="anim-telemetry-chip chip-hito" id="anim-chip-hito">
+                <span class="chip-icon">📍</span>
+                <span class="chip-val" id="anim-hito-val">Fuente del Pípila (a 25 m)</span>
+            </div>
+            <button class="btn-anim-min" id="btn-anim-min" title="Minimizar barra de animación">−</button>
+        </div>
+
+        <!-- Fila 2: Barra de Desplazamiento Temporal (Scrubber) -->
+        <div class="anim-scrubber-row">
+            <span class="scrubber-label-time" id="anim-time-start">Inicio</span>
+            <div class="scrubber-slider-wrap">
+                <input type="range" id="anim-slider" min="0" max="234" value="0" step="1" title="Arrastra para avanzar o retroceder en la ruta">
+                <div class="slider-fill-track" id="anim-slider-fill"></div>
+            </div>
+            <span class="scrubber-label-time" id="anim-time-end">4.66 km</span>
+        </div>
+
+        <!-- Fila 3: Controles de Reproducción, Velocidad y Cámara -->
+        <div class="anim-controls-row">
+            <div class="anim-playback-group">
+                <button type="button" class="btn-anim-action btn-play" id="btn-anim-play" title="Reproducir animación">
+                    <span id="anim-play-icon">▶</span> <span id="anim-play-text">Iniciar Recorrido</span>
+                </button>
+                <button type="button" class="btn-anim-action btn-stop" id="btn-anim-stop" title="Reiniciar al inicio">
+                    <span>⏹</span> Reiniciar
+                </button>
+            </div>
+
+            <!-- Selector de Velocidad (1x, 2x, 4x) -->
+            <div class="anim-speed-group">
+                <span class="speed-label">Vel:</span>
+                <button type="button" class="btn-speed active" data-speed="1" title="Velocidad normal (1x)">1x</button>
+                <button type="button" class="btn-speed" data-speed="2" title="Doble velocidad (2x)">2x</button>
+                <button type="button" class="btn-speed" data-speed="4" title="Cuádruple velocidad (4x)">4x</button>
+            </div>
+
+            <!-- Botón Seguir con Cámara -->
+            <button type="button" class="btn-cam-follow active" id="btn-anim-cam-follow" title="Acompañar con la cámara al observador mientras avanza">
+                <span>🎥</span> Seguir Cámara (On)
+            </button>
+
+            <!-- Botón Modo de Cámara 3D Detrás / 2D Cenital (Inicia en 2D por defecto) -->
+            <button type="button" class="btn-cam-mode-toggle" id="btn-anim-cam-mode" title="Alternar entre Cámara Detrás 3D y Vista Cenital 2D">
+                <span id="anim-cam-mode-icon">📐</span> <span id="anim-cam-mode-text">Vista 2D (Cenital)</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- 7. Datos Geoespaciales Estáticos (Permite abrir el mapa con DOBLE CLIC en index.html sin necesidad de servidor) -->
+    <script src="datos/metadata.js"></script>
+    <script src="datos/ruta.js"></script>
+    <script src="datos/referencias.js"></script>
+    <script src="datos/envolvente.js"></script>
+    <script src="datos/edificios.js"></script>
+    <script src="datos/animacion.js"></script>
+
+    <!-- 8. Script de Lógica de la Aplicación -->
+    <script src="app.js"></script>
+</body>
+</html>
+
+
