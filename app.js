@@ -47,11 +47,25 @@ const appState = {
     animPlayerVisible: false,     // ¿Barra de controles visible? Inicia minimizado por defecto
     observerMarker: null,         // Marcador HTML del observador en el mapa
     prebuiltFeatures: [],         // Features GeoJSON precalculadas para 60fps constantes
-    animTimer: null               // Temporizador del bucle de animación
+    animTimer: null,              // Temporizador del bucle de animación
+    // Estado de las herramientas de medición interactiva
+    measure: {
+        active: false,             // ¿Herramienta de medición activa?
+        mode: null,                // 'distance' | 'area' | null
+        coordinates: [],           // Coordenadas [lng, lat] de los vértices fijados
+        markers: [],               // Marcadores HTML de los vértices en el mapa
+        totalMarker: null,         // Marcador flotante con la tarjeta de resultado final
+        isFinished: false,         // ¿Medición completada/cerrada?
+        totalDistance: 0,          // Distancia acumulada en metros
+        totalArea: 0               // Área acumulada en m²
+    }
 };
 
 // Variable global para la instancia del mapa MapLibre
 let map = null;
+
+// Almacén de identificadores de las capas base de Carto Dark Matter para conmutación limpia
+let cartoBaseLayerIds = [];
 
 
 // ==============================================================================
@@ -73,7 +87,8 @@ function initMap() {
         zoom: 14.8,
         pitch: 0,       // Vista cenital (ortogonal, 90° desde arriba)
         bearing: 0,     // Orientación norte
-        maxPitch: 85,   // Permite perspectivas oblicuas profundas para vista 3D
+        maxPitch: 70,   // Límite de inclinación seguro que evita recorte de frustum y desaparición de capas
+        maxZoom: 21,    // Límite superior de zoom seguro para sobre-escalado nítido
         attributionControl: false // Personalizado si se desea
     });
 
@@ -95,6 +110,7 @@ function initMap() {
         setupInteractivity();
         setupAnimation();
         setupUIEventListeners();
+        setupMeasureTools();
 
         // Escuchar giros e inclinaciones manuales del mapa para mantener la orientación y UI en sincronía
         map.on("rotate", updateObserverArrowDirection);
@@ -184,6 +200,11 @@ async function loadAllDatasets() {
  * Agrega y estiliza las capas vectoriales sobre el mapa.
  */
 function setupLayers() {
+    // Identificar todas las capas base del estilo Carto Dark Matter para conmutación limpia
+    cartoBaseLayerIds = map.getStyle().layers
+        .filter(l => l.source === "carto" || l.id === "background")
+        .map(l => l.id);
+
     // -------------------------------------------------------------------------
     // CAPA 0: MAPA SATELITAL (ESRI WORLD IMAGERY - ALTA RESOLUCIÓN)
     // -------------------------------------------------------------------------
@@ -383,6 +404,172 @@ function setupLayers() {
             "circle-stroke-width": 2.5
         }
     });
+
+    // -------------------------------------------------------------------------
+    // CAPA 4.1: ETIQUETAS NATIVAS DE HITOS EN WEBGL (CERO RETRASO A 60+ FPS)
+    // Renderizadas por GPU dentro del mismo flujo de fotogramas que el mapa y el relieve
+    // -------------------------------------------------------------------------
+    map.addLayer({
+        id: "referencias-labels",
+        type: "symbol",
+        source: "referencias_src",
+        layout: {
+            "visibility": appState.landmarksLabelsVisible ? "visible" : "none",
+            "text-field": ["get", "nombre"],
+            "text-font": ["Montserrat Medium", "Open Sans Regular"],
+            "text-size": [
+                "interpolate",
+                ["linear"],
+                ["zoom"],
+                12, 10.5,
+                14, 11.5,
+                16, 13,
+                18, 14.5
+            ],
+            "text-offset": [0, -1.25],
+            "text-anchor": "bottom",
+            "text-pitch-alignment": "viewport",
+            "text-rotation-alignment": "viewport",
+            "text-allow-overlap": false,
+            "text-ignore-placement": false,
+            "text-padding": 3,
+            "text-optional": true
+        },
+        paint: {
+            "text-color": "#f8fafc",
+            "text-halo-color": "#090d16",
+            "text-halo-width": 2.2,
+            "text-halo-blur": 0.5
+        }
+    });
+
+    // Etiqueta nativa destacada para el hito actualmente seleccionado (activo)
+    map.addLayer({
+        id: "referencias-active-label",
+        type: "symbol",
+        source: "referencias_src",
+        layout: {
+            "visibility": "visible",
+            "text-field": ["get", "nombre"],
+            "text-font": ["Open Sans Bold", "Montserrat Medium"],
+            "text-size": 13.5,
+            "text-offset": [0, -1.35],
+            "text-anchor": "bottom",
+            "text-pitch-alignment": "viewport",
+            "text-rotation-alignment": "viewport",
+            "text-allow-overlap": true,
+            "text-ignore-placement": true
+        },
+        filter: ["==", ["to-string", ["coalesce", ["get", "fid"], ""]], "__none__"],
+        paint: {
+            "text-color": "#fbbf24",
+            "text-halo-color": "#090d16",
+            "text-halo-width": 2.8,
+            "text-halo-blur": 0.5
+        }
+    });
+
+    // -------------------------------------------------------------------------
+    // CAPAS DE MEDICIÓN INTERACTIVA (DISTANCIA Y ÁREA)
+    // -------------------------------------------------------------------------
+    map.addSource("measure_polygon_src", {
+        type: "geojson",
+        data: { type: "FeatureCollection", features: [] }
+    });
+
+    map.addSource("measure_line_src", {
+        type: "geojson",
+        data: { type: "FeatureCollection", features: [] }
+    });
+
+    map.addSource("measure_rubberband_src", {
+        type: "geojson",
+        data: { type: "FeatureCollection", features: [] }
+    });
+
+    map.addSource("measure_points_src", {
+        type: "geojson",
+        data: { type: "FeatureCollection", features: [] }
+    });
+
+    // Relleno de polígono medido
+    map.addLayer({
+        id: "measure-polygon-fill",
+        type: "fill",
+        source: "measure_polygon_src",
+        paint: {
+            "fill-color": "#38bdf8",
+            "fill-opacity": 0.24
+        }
+    });
+
+    // Contorno de polígono medido
+    map.addLayer({
+        id: "measure-polygon-stroke",
+        type: "line",
+        source: "measure_polygon_src",
+        paint: {
+            "line-color": "#38bdf8",
+            "line-width": 2.2,
+            "line-dasharray": [2, 2]
+        }
+    });
+
+    // Resplandor de línea de medición
+    map.addLayer({
+        id: "measure-line-glow",
+        type: "line",
+        source: "measure_line_src",
+        paint: {
+            "line-color": "#38bdf8",
+            "line-width": 7,
+            "line-opacity": 0.35
+        }
+    });
+
+    // Línea de medición sólida
+    map.addLayer({
+        id: "measure-line-main",
+        type: "line",
+        source: "measure_line_src",
+        layout: {
+            "line-cap": "round",
+            "line-join": "round"
+        },
+        paint: {
+            "line-color": "#38bdf8",
+            "line-width": 3.6
+        }
+    });
+
+    // Guía elástica dinámica (rubberband) bajo el cursor
+    map.addLayer({
+        id: "measure-rubberband-line",
+        type: "line",
+        source: "measure_rubberband_src",
+        layout: {
+            "line-cap": "round",
+            "line-join": "round"
+        },
+        paint: {
+            "line-color": "#fbbf24",
+            "line-width": 2.2,
+            "line-dasharray": [3, 2]
+        }
+    });
+
+    // Vértices de medición
+    map.addLayer({
+        id: "measure-points-circle",
+        type: "circle",
+        source: "measure_points_src",
+        paint: {
+            "circle-radius": 5.5,
+            "circle-color": "#0f172a",
+            "circle-stroke-width": 2.5,
+            "circle-stroke-color": "#38bdf8"
+        }
+    });
 }
 
 
@@ -397,12 +584,13 @@ function setupLayers() {
  */
 function setup3DFeatures() {
     // 1. Agregar la fuente global de elevación DEM (tiles Terrarium en AWS)
+    // maxzoom: 14 evita discrepancias de resolución con las capas base y la advertencia WebGL de elevación
     map.addSource("terrain-dem-src", {
         type: "raster-dem",
         tiles: ["https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png"],
         encoding: "terrarium",
         tileSize: 256,
-        maxzoom: 15
+        maxzoom: 14
     });
 
     // 2. Agregar la capa de extrusión 3D de edificios vinculada a 'altura'
@@ -442,6 +630,8 @@ function setup3DFeatures() {
 
 /**
  * Cambia el mapa base entre estilo oscuro (Carto) e imagen satelital de alta resolución (ESRI).
+ * Oculta completamente las capas del mapa base oscuro al activar satélite para evitar que queden
+ * por debajo, se filtren visualmente o causen artefactos/desaparición en perspectiva 3D.
  * @param {'dark' | 'satellite'} mode - Estilo de mapa base deseado
  */
 function setBasemap(mode) {
@@ -451,11 +641,27 @@ function setBasemap(mode) {
     const btnSat = document.getElementById("btn-bm-satellite");
 
     if (mode === "satellite") {
-        map.setLayoutProperty("satellite-layer", "visibility", "visible");
+        if (map.getLayer("satellite-layer")) {
+            map.setLayoutProperty("satellite-layer", "visibility", "visible");
+        }
+        // Ocultar todas las capas base de Carto para evitar que queden por debajo
+        cartoBaseLayerIds.forEach(id => {
+            if (map.getLayer(id)) {
+                map.setLayoutProperty(id, "visibility", "none");
+            }
+        });
         if (btnDark) btnDark.classList.remove("active");
         if (btnSat) btnSat.classList.add("active");
     } else {
-        map.setLayoutProperty("satellite-layer", "visibility", "none");
+        if (map.getLayer("satellite-layer")) {
+            map.setLayoutProperty("satellite-layer", "visibility", "none");
+        }
+        // Restaurar visibilidad de las capas base Carto Dark
+        cartoBaseLayerIds.forEach(id => {
+            if (map.getLayer(id)) {
+                map.setLayoutProperty(id, "visibility", "visible");
+            }
+        });
         if (btnDark) btnDark.classList.add("active");
         if (btnSat) btnSat.classList.remove("active");
     }
@@ -540,6 +746,9 @@ function toggleTerrain3D(forceState) {
     try {
         if (appState.terrain3DActive) {
             map.setTerrain({ source: "terrain-dem-src", exaggeration: appState.terrainExaggeration });
+            if (map.setSourceTileLodParams) {
+                map.setSourceTileLodParams(10, 4);
+            }
         } else {
             // Desactivar elevación y regresar a plano 2D
             map.setTerrain(null);
@@ -595,6 +804,10 @@ function setCameraView(mode) {
         updateCamModeUI(false);
     } else if (mode === "3d") {
         appState.animCameraMode = "3d";
+        // Si los edificios 3D están apagados, activarlos para enriquecer la experiencia visual
+        if (!appState.buildings3DActive) {
+            toggleBuildings3D(true);
+        }
         let targetCenter = [-101.1918, 19.7033];
         let targetBearing = -15;
 
@@ -694,36 +907,45 @@ function updateObserverArrowDirection() {
  */
 function setupInteractivity() {
     // -------------------------------------------------------------------------
-    // 1. Clic en Hitos / Puntos de Referencia (Círculos amarillos)
+    // 1. Clic en Hitos / Puntos de Referencia y sus Etiquetas Nativas
     // -------------------------------------------------------------------------
-    map.on("click", "referencias-circles", (e) => {
-        if (!e.features || !e.features.length) return;
-        const feat = e.features[0];
-        const coords = feat.geometry.coordinates.slice();
-        const props = feat.properties || {};
-        showLandmarkPopup(coords, props.nombre || "Hito Urbano", props.fid || "");
-    });
+    ["referencias-circles", "referencias-labels", "referencias-active-label"].forEach(layerId => {
+        map.on("click", layerId, (e) => {
+            if (appState.measure && appState.measure.active) return;
+            if (!e.features || !e.features.length) return;
+            const feat = e.features[0];
+            const coords = feat.geometry.coordinates.slice();
+            const props = feat.properties || {};
+            showLandmarkPopup(coords, props.nombre || "Hito Urbano", props.fid || "");
+        });
 
-    map.on("mouseenter", "referencias-circles", () => {
-        map.getCanvas().style.cursor = "pointer";
-    });
-    map.on("mouseleave", "referencias-circles", () => {
-        map.getCanvas().style.cursor = "";
+        map.on("mouseenter", layerId, () => {
+            if (appState.measure && appState.measure.active) return;
+            map.getCanvas().style.cursor = "pointer";
+        });
+        map.on("mouseleave", layerId, () => {
+            if (appState.measure && appState.measure.active) return;
+            map.getCanvas().style.cursor = "";
+        });
     });
 
     // -------------------------------------------------------------------------
     // 2. Eventos nativos de capas de edificios para cursor inmediato
     // -------------------------------------------------------------------------
     map.on("mouseenter", "edificios-3d", () => {
+        if (appState.measure && appState.measure.active) return;
         map.getCanvas().style.cursor = "pointer";
     });
     map.on("mouseleave", "edificios-3d", () => {
+        if (appState.measure && appState.measure.active) return;
         map.getCanvas().style.cursor = "";
     });
     map.on("mouseenter", "edificios-fill", () => {
+        if (appState.measure && appState.measure.active) return;
         map.getCanvas().style.cursor = "pointer";
     });
     map.on("mouseleave", "edificios-fill", () => {
+        if (appState.measure && appState.measure.active) return;
         map.getCanvas().style.cursor = "";
     });
 
@@ -734,14 +956,15 @@ function setupInteractivity() {
     let lastSelectionTimestamp = 0;
 
     function handleBuildingSelection(point, lngLat) {
+        if (appState.measure && appState.measure.active) return;
         const now = Date.now();
         if (now - lastSelectionTimestamp < 180) return; // Prevenir disparos duplicados
 
-        // Si se hizo clic sobre un hito, referencias-circles ya lo atiende
+        // Si se hizo clic sobre un hito o su etiqueta, las capas de hitos ya lo atienden
         const refHits = map.queryRenderedFeatures([
             [point.x - 8, point.y - 8],
             [point.x + 8, point.y + 8]
-        ], { layers: ["referencias-circles"] });
+        ], { layers: ["referencias-circles", "referencias-labels", "referencias-active-label"] });
         if (refHits.length > 0) return;
 
         // Determinar capas activas de edificios
@@ -768,7 +991,19 @@ function setupInteractivity() {
 
     // Clic estándar de MapLibre
     map.on("click", (e) => {
+        if (appState.measure && appState.measure.active) {
+            handleMeasureMapClick(e);
+            return;
+        }
         handleBuildingSelection(e.point, e.lngLat);
+    });
+
+    // Doble clic para finalizar medición
+    map.on("dblclick", (e) => {
+        if (appState.measure && appState.measure.active) {
+            e.preventDefault();
+            finishMeasurement();
+        }
     });
 
     // Rastreo de gesto (mousedown -> mouseup):
@@ -783,6 +1018,7 @@ function setupInteractivity() {
     });
 
     map.on("mouseup", (e) => {
+        if (appState.measure && appState.measure.active) return;
         if (!pointerDownPos) return;
         const dx = e.point.x - pointerDownPos.x;
         const dy = e.point.y - pointerDownPos.y;
@@ -798,11 +1034,16 @@ function setupInteractivity() {
     // Cursor reactivo en movimiento con requestAnimationFrame para 60fps constantes
     let hoverPending = false;
     map.on("mousemove", (e) => {
+        if (appState.measure && appState.measure.active) {
+            handleMeasureMouseMove(e);
+            return;
+        }
+
         if (hoverPending) return;
         hoverPending = true;
         requestAnimationFrame(() => {
             hoverPending = false;
-            if (!map) return;
+            if (!map || (appState.measure && appState.measure.active)) return;
 
             const checkLayers = [];
             if (map.getLayer("referencias-circles")) checkLayers.push("referencias-circles");
@@ -845,9 +1086,16 @@ function showLandmarkPopup(coords, nombre, fid) {
     // 2. Actualizar ID del hito activo en el estado
     appState.activeLandmarkFid = fid;
 
-    // 3. Resaltar en el mapa el hito activo (apagando el resalte del anterior)
+    // 3. Resaltar en el mapa el hito activo (halo resplandeciente y etiqueta dorada)
     if (map && map.getLayer("referencias-active-glow")) {
         map.setFilter("referencias-active-glow", [
+            "==",
+            ["to-string", ["coalesce", ["get", "fid"], ""]],
+            String(fid)
+        ]);
+    }
+    if (map && map.getLayer("referencias-active-label")) {
+        map.setFilter("referencias-active-label", [
             "==",
             ["to-string", ["coalesce", ["get", "fid"], ""]],
             String(fid)
@@ -889,6 +1137,9 @@ function showLandmarkPopup(coords, nombre, fid) {
             appState.activePopup = null;
             if (map && map.getLayer("referencias-active-glow")) {
                 map.setFilter("referencias-active-glow", ["==", ["to-string", ["coalesce", ["get", "fid"], ""]], "__none__"]);
+            }
+            if (map && map.getLayer("referencias-active-label")) {
+                map.setFilter("referencias-active-label", ["==", ["to-string", ["coalesce", ["get", "fid"], ""]], "__none__"]);
             }
             document.querySelectorAll(".landmark-list-item").forEach(item => {
                 item.classList.remove("active");
@@ -963,57 +1214,25 @@ function setupStartEndMarkers(ptoInicio, ptoFin) {
 }
 
 /**
- * Crea las etiquetas flotantes de texto para los 26 hitos urbanos.
- */
-function renderLandmarkBadges() {
-    // Si ya existen marcadores, eliminarlos del mapa
-    appState.landmarkMarkers.forEach(m => m.remove());
-    appState.landmarkMarkers = [];
-
-    appState.landmarksData.forEach(feat => {
-        const coords = feat.geometry.coordinates;
-        const nombre = feat.properties.nombre || "Hito";
-        const fid = feat.properties.fid || "";
-
-        const el = document.createElement("div");
-        el.className = "landmark-map-badge";
-        el.innerText = nombre;
-        el.style.display = appState.landmarksLabelsVisible ? "block" : "none";
-
-        el.addEventListener("click", (e) => {
-            e.stopPropagation();
-            showLandmarkPopup(coords, nombre, fid);
-        });
-
-        const marker = new maplibregl.Marker({
-            element: el,
-            anchor: "bottom",
-            offset: [0, -10]
-        }).setLngLat(coords).addTo(map);
-
-        appState.landmarkMarkers.push(marker);
-    });
-}
-
-/**
- * Alterna la visibilidad de todas las etiquetas de hitos a la vez.
+ * Alterna la visibilidad de todas las etiquetas nativas de hitos a la vez.
+ * Renderizadas directamente en WebGL por MapLibre para 0 ms de retraso en paneo y animación.
  */
 function toggleAllLandmarkNames() {
     appState.landmarksLabelsVisible = !appState.landmarksLabelsVisible;
     const btn = document.getElementById("btn-toggle-names");
+    const chkRef = document.getElementById("chk-referencias");
+    const isMasterVisible = !chkRef || chkRef.checked;
+    const vis = (appState.landmarksLabelsVisible && isMasterVisible) ? "visible" : "none";
 
-    if (appState.landmarksLabelsVisible) {
-        if (appState.landmarkMarkers.length === 0) {
-            renderLandmarkBadges();
-        }
-        appState.landmarkMarkers.forEach(m => m.getElement().style.display = "block");
-        if (btn) {
+    if (map && map.getLayer("referencias-labels")) {
+        map.setLayoutProperty("referencias-labels", "visibility", vis);
+    }
+
+    if (btn) {
+        if (appState.landmarksLabelsVisible) {
             btn.classList.add("active");
             btn.innerHTML = `<span>🏷️</span> Ocultar Nombres de Hitos`;
-        }
-    } else {
-        appState.landmarkMarkers.forEach(m => m.getElement().style.display = "none");
-        if (btn) {
+        } else {
             btn.classList.remove("active");
             btn.innerHTML = `<span>🏷️</span> Mostrar Nombres de Hitos (Off)`;
         }
@@ -1077,7 +1296,27 @@ function setupUIEventListeners() {
     // 4. Switches de Capas 2D
     bindLayerToggle("chk-envolvente", ["envolvente-fill", "envolvente-line"]);
     bindLayerToggle("chk-ruta", ["ruta-line", "ruta-halo"]);
-    bindLayerToggle("chk-referencias", ["referencias-circles"]);
+    
+    // Switch de Puntos de Referencia (círculos y etiquetas nativas)
+    const chkRef = document.getElementById("chk-referencias");
+    if (chkRef) {
+        chkRef.addEventListener("change", (e) => {
+            const isChecked = e.target.checked;
+            const vis = isChecked ? "visible" : "none";
+            if (map.getLayer("referencias-circles")) {
+                map.setLayoutProperty("referencias-circles", "visibility", vis);
+            }
+            if (map.getLayer("referencias-active-glow")) {
+                map.setLayoutProperty("referencias-active-glow", "visibility", vis);
+            }
+            if (map.getLayer("referencias-active-label")) {
+                map.setLayoutProperty("referencias-active-label", "visibility", vis);
+            }
+            if (map.getLayer("referencias-labels")) {
+                map.setLayoutProperty("referencias-labels", "visibility", (isChecked && appState.landmarksLabelsVisible) ? "visible" : "none");
+            }
+        });
+    }
 
     // 5. Botones de perspectiva de cámara
     const btnCam2D = document.getElementById("btn-cam-2d");
@@ -1483,6 +1722,12 @@ function startAnimation() {
     appState.animPlaying = true;
     updatePlayButtonUI(true);
 
+    // Cerrar cualquier popup activo para que no quede rezagado al avanzar la cámara
+    if (appState.activePopup) {
+        appState.activePopup.remove();
+        appState.activePopup = null;
+    }
+
     // Ocultar temporalmente la envolvente estática para disfrutar la revelación progresiva
     if (map.getLayer("envolvente-fill")) {
         map.setLayoutProperty("envolvente-fill", "visibility", "none");
@@ -1673,6 +1918,709 @@ function toggleAnimationPlayer(forceState) {
             map.setLayoutProperty("envolvente-line", "visibility", envVis);
         }
     }
+}
+
+
+// ==============================================================================
+// 10. HERRAMIENTAS DE MEDICIÓN INTERACTIVA (DISTANCIA Y ÁREA)
+// ==============================================================================
+
+/**
+ * Inicializa los escuchadores de eventos para las herramientas de medición.
+ */
+function setupMeasureTools() {
+    // 1. Botones de activación en el panel lateral
+    const btnDist = document.getElementById("btn-measure-distance");
+    if (btnDist) {
+        btnDist.addEventListener("click", () => setMeasureMode("distance"));
+    }
+
+    const btnArea = document.getElementById("btn-measure-area");
+    if (btnArea) {
+        btnArea.addEventListener("click", () => setMeasureMode("area"));
+    }
+
+    const btnClear = document.getElementById("btn-measure-clear");
+    if (btnClear) {
+        btnClear.addEventListener("click", () => clearMeasurement(true));
+    }
+
+    // 2. Botones de acción en el HUD flotante
+    const btnHudClose = document.getElementById("btn-measure-hud-close");
+    if (btnHudClose) {
+        btnHudClose.addEventListener("click", () => clearMeasurement(true));
+    }
+
+    const btnHudReset = document.getElementById("btn-hud-reset");
+    if (btnHudReset) {
+        btnHudReset.addEventListener("click", () => clearMeasurement(false));
+    }
+
+    const btnHudUndo = document.getElementById("btn-hud-undo");
+    if (btnHudUndo) {
+        btnHudUndo.addEventListener("click", undoLastMeasurePoint);
+    }
+
+    const btnHudFinish = document.getElementById("btn-hud-finish");
+    if (btnHudFinish) {
+        btnHudFinish.addEventListener("click", finishMeasurement);
+    }
+
+    // 3. Atajos de teclado globales
+    window.addEventListener("keydown", (e) => {
+        if (!appState.measure || !appState.measure.active) return;
+
+        if (e.key === "Escape") {
+            e.preventDefault();
+            clearMeasurement(true);
+        } else if (e.key === "Enter") {
+            e.preventDefault();
+            finishMeasurement();
+        } else if ((e.ctrlKey && (e.key === "z" || e.key === "Z")) || e.key === "Backspace") {
+            // Evitar conflicto si el usuario está escribiendo en el buscador de hitos
+            if (document.activeElement && document.activeElement.tagName === "INPUT") return;
+            e.preventDefault();
+            undoLastMeasurePoint();
+        }
+    });
+}
+
+/**
+ * Activa, conmuta o desactiva el modo de medición ('distance' o 'area').
+ * @param {'distance' | 'area' | null} mode
+ */
+function setMeasureMode(mode) {
+    if (!map) return;
+
+    // Si se presiona el botón del modo actualmente activo, se desactiva
+    if (appState.measure.active && appState.measure.mode === mode) {
+        clearMeasurement(true);
+        return;
+    }
+
+    // Limpiar cualquier medición previa antes de iniciar el nuevo modo
+    clearMeasurement(false);
+
+    if (!mode) {
+        clearMeasurement(true);
+        return;
+    }
+
+    appState.measure.active = true;
+    appState.measure.mode = mode;
+    appState.measure.isFinished = false;
+
+    // Desactivar el zoom con doble clic de MapLibre para permitir finalizar con doble clic
+    map.doubleClickZoom.disable();
+
+    // Cambiar cursor a cruz de precisión
+    document.body.classList.add("measuring-active");
+    map.getCanvas().style.cursor = "crosshair";
+
+    // Actualizar botones del panel lateral
+    const btnDist = document.getElementById("btn-measure-distance");
+    const btnArea = document.getElementById("btn-measure-area");
+    const btnClear = document.getElementById("btn-measure-clear");
+    if (btnDist) btnDist.classList.toggle("active", mode === "distance");
+    if (btnArea) btnArea.classList.toggle("active", mode === "area");
+    if (btnClear) btnClear.removeAttribute("disabled");
+
+    // Desplegar HUD superior y tarjeta del panel lateral
+    const hud = document.getElementById("measure-hud");
+    const hudIcon = document.getElementById("measure-hud-icon");
+    const hudTitle = document.getElementById("measure-hud-title");
+    const hudStatus = document.getElementById("measure-hud-status");
+    const hudInst = document.getElementById("measure-hud-instruction");
+    const hudLblPri = document.getElementById("measure-hud-lbl-primary");
+    const hudValPri = document.getElementById("measure-hud-val-primary");
+    const hudLblSec = document.getElementById("measure-hud-lbl-secondary");
+    const hudValSec = document.getElementById("measure-hud-val-secondary");
+
+    const panelCard = document.getElementById("panel-measure-card");
+    const panelBadge = document.getElementById("panel-measure-badge");
+    const panelStatus = document.getElementById("panel-measure-status");
+    const panelPri = document.getElementById("panel-measure-primary");
+    const panelSec = document.getElementById("panel-measure-secondary");
+
+    if (hud) hud.classList.remove("hidden");
+    if (panelCard) panelCard.classList.remove("hidden");
+
+    if (mode === "distance") {
+        if (hudIcon) hudIcon.innerText = "📏";
+        if (hudTitle) hudTitle.innerText = "Medición de Distancia";
+        if (hudInst) hudInst.innerText = "Haz clic en el mapa para marcar el primer punto del trayecto";
+        if (hudLblPri) hudLblPri.innerText = "Distancia Total";
+        if (hudValPri) hudValPri.innerText = "0.0 m";
+        if (hudLblSec) hudLblSec.innerText = "Tramos y Vértices";
+        if (hudValSec) hudValSec.innerText = "0 puntos colocados";
+
+        if (panelBadge) panelBadge.innerText = "📏 Distancia";
+        if (panelStatus) panelStatus.innerText = "En curso";
+        if (panelPri) panelPri.innerText = "0.0 m";
+        if (panelSec) panelSec.innerText = "0 puntos colocados";
+    } else {
+        if (hudIcon) hudIcon.innerText = "📐";
+        if (hudTitle) hudTitle.innerText = "Medición de Área Poligonal";
+        if (hudInst) hudInst.innerText = "Haz clic en el mapa para trazar los vértices de la superficie";
+        if (hudLblPri) hudLblPri.innerText = "Área Superficial";
+        if (hudValPri) hudValPri.innerText = "0.0 m²";
+        if (hudLblSec) hudLblSec.innerText = "Perímetro";
+        if (hudValSec) hudValSec.innerText = "0.0 m (0 vértices)";
+
+        if (panelBadge) panelBadge.innerText = "📐 Área";
+        if (panelStatus) panelStatus.innerText = "En curso";
+        if (panelPri) panelPri.innerText = "0.0 m²";
+        if (panelSec) panelSec.innerText = "0 vértices colocados";
+    }
+
+    if (hudStatus) hudStatus.innerText = "Activo";
+
+    updateMeasureActionButtons();
+}
+
+/**
+ * Atiende clics en el lienzo del mapa mientras la medición está activa.
+ */
+function handleMeasureMapClick(e) {
+    if (!appState.measure.active) return;
+
+    // Si ya estaba finalizada, un nuevo clic reinicia limpiamente un nuevo trazo
+    if (appState.measure.isFinished) {
+        clearMeasurement(false);
+        appState.measure.active = true;
+        appState.measure.isFinished = false;
+        map.doubleClickZoom.disable();
+    }
+
+    const coord = [Number(e.lngLat.lng.toFixed(6)), Number(e.lngLat.lat.toFixed(6))];
+    const coords = appState.measure.coordinates;
+    coords.push(coord);
+
+    // Crear un marcador HTML numérico en el vértice
+    const idx = coords.length;
+    const markerEl = document.createElement("div");
+    markerEl.className = "measure-node-marker";
+    markerEl.innerText = String(idx);
+    markerEl.title = `Vértice #${idx}`;
+
+    const marker = new maplibregl.Marker({ element: markerEl, anchor: "center" })
+        .setLngLat(coord)
+        .addTo(map);
+
+    appState.measure.markers.push(marker);
+
+    // Actualizar geometrías en fuentes GeoJSON
+    syncMeasureGeoJSON();
+
+    // Actualizar cálculos y HUD
+    recalculateMeasureMetrics();
+    updateMeasureActionButtons();
+}
+
+/**
+ * Rastrea el movimiento del cursor para dibujar la guía elástica (rubberband).
+ */
+let measureMouseMovePending = false;
+function handleMeasureMouseMove(e) {
+    if (!appState.measure.active || appState.measure.isFinished) return;
+    const coords = appState.measure.coordinates;
+    if (coords.length === 0) return;
+
+    if (measureMouseMovePending) return;
+    measureMouseMovePending = true;
+
+    requestAnimationFrame(() => {
+        measureMouseMovePending = false;
+        if (!map || !appState.measure.active || appState.measure.isFinished) return;
+
+        const cursorCoord = [e.lngLat.lng, e.lngLat.lat];
+        const lastCoord = coords[coords.length - 1];
+
+        // 1. Línea elástica (rubberband)
+        const rbFeatures = [];
+        if (appState.measure.mode === "distance") {
+            rbFeatures.push({
+                type: "Feature",
+                geometry: {
+                    type: "LineString",
+                    coordinates: [lastCoord, cursorCoord]
+                }
+            });
+        } else if (appState.measure.mode === "area") {
+            // En área, mostramos rubberband desde el último punto al cursor y del cursor al primero
+            if (coords.length === 1) {
+                rbFeatures.push({
+                    type: "Feature",
+                    geometry: {
+                        type: "LineString",
+                        coordinates: [lastCoord, cursorCoord]
+                    }
+                });
+            } else {
+                rbFeatures.push({
+                    type: "Feature",
+                    geometry: {
+                        type: "LineString",
+                        coordinates: [lastCoord, cursorCoord, coords[0]]
+                    }
+                });
+
+                // Previsualización dinámica del polígono en vivo
+                const previewPolygon = [...coords, cursorCoord, coords[0]];
+                const polySrc = map.getSource("measure_polygon_src");
+                if (polySrc) {
+                    polySrc.setData({
+                        type: "FeatureCollection",
+                        features: [{
+                            type: "Feature",
+                            geometry: {
+                                type: "Polygon",
+                                coordinates: [previewPolygon]
+                            }
+                        }]
+                    });
+                }
+            }
+        }
+
+        const rbSrc = map.getSource("measure_rubberband_src");
+        if (rbSrc) {
+            rbSrc.setData({
+                type: "FeatureCollection",
+                features: rbFeatures
+            });
+        }
+
+        // 2. Previsualización de métrica en vivo con el cursor
+        updateMeasureLivePreview(cursorCoord);
+    });
+}
+
+/**
+ * Calcula y actualiza los indicadores numéricos con la posición tentativa del cursor.
+ */
+function updateMeasureLivePreview(cursorCoord) {
+    const coords = appState.measure.coordinates;
+    if (coords.length === 0) return;
+
+    const hudValPri = document.getElementById("measure-hud-val-primary");
+    const lastCoord = coords[coords.length - 1];
+    const segmentDist = calculateHaversineDistance(lastCoord, cursorCoord);
+
+    if (appState.measure.mode === "distance") {
+        const liveTotal = appState.measure.totalDistance + segmentDist;
+        if (hudValPri) {
+            hudValPri.innerHTML = `${formatDistance(liveTotal)} <span style="font-size:0.75em; opacity:0.75; font-weight:normal;">(+${formatDistance(segmentDist)})</span>`;
+        }
+    } else if (appState.measure.mode === "area") {
+        if (coords.length >= 2) {
+            const tempPoly = [...coords, cursorCoord];
+            const liveArea = calculateSphericalPolygonArea(tempPoly);
+            if (hudValPri) {
+                hudValPri.innerText = formatArea(liveArea);
+            }
+        }
+    }
+}
+
+/**
+ * Finaliza el trazo de la medición actual, fija los valores y coloca una tarjeta flotante de resumen.
+ */
+function finishMeasurement() {
+    if (!appState.measure.active || appState.measure.isFinished) return;
+    const coords = appState.measure.coordinates;
+
+    if (appState.measure.mode === "distance" && coords.length < 2) return;
+    if (appState.measure.mode === "area" && coords.length < 3) return;
+
+    appState.measure.isFinished = true;
+
+    // Limpiar guía elástica (rubberband)
+    const rbSrc = map.getSource("measure_rubberband_src");
+    if (rbSrc) {
+        rbSrc.setData({ type: "FeatureCollection", features: [] });
+    }
+
+    // Sincronizar geometrías definitivas
+    syncMeasureGeoJSON();
+    recalculateMeasureMetrics();
+
+    // Eliminar marcador de total previo si existía
+    if (appState.measure.totalMarker) {
+        appState.measure.totalMarker.remove();
+        appState.measure.totalMarker = null;
+    }
+
+    // Crear marcador flotante con insignia de resultado
+    const totalEl = document.createElement("div");
+    totalEl.className = "measure-total-badge";
+
+    if (appState.measure.mode === "distance") {
+        const lastCoord = coords[coords.length - 1];
+        totalEl.innerHTML = `
+            <div class="total-title">📏 Distancia Total</div>
+            <div class="total-value">${formatDistance(appState.measure.totalDistance)}</div>
+            <div class="total-sub">${coords.length} vértices • ${coords.length - 1} tramos</div>
+        `;
+        appState.measure.totalMarker = new maplibregl.Marker({ element: totalEl, anchor: "bottom", offset: [0, -12] })
+            .setLngLat(lastCoord)
+            .addTo(map);
+    } else {
+        // En área, calcular el centroide para ubicar la tarjeta
+        let sumLng = 0, sumLat = 0;
+        coords.forEach(pt => { sumLng += pt[0]; sumLat += pt[1]; });
+        const centroid = [sumLng / coords.length, sumLat / coords.length];
+
+        totalEl.innerHTML = `
+            <div class="total-title">📐 Superficie Poligonal</div>
+            <div class="total-value">${formatArea(appState.measure.totalArea)}</div>
+            <div class="total-sub">Perímetro: ${formatDistance(appState.measure.totalDistance)}</div>
+        `;
+        appState.measure.totalMarker = new maplibregl.Marker({ element: totalEl, anchor: "center" })
+            .setLngLat(centroid)
+            .addTo(map);
+    }
+
+    // Actualizar textos UI
+    const hudStatus = document.getElementById("measure-hud-status");
+    const hudInst = document.getElementById("measure-hud-instruction");
+    const panelStatus = document.getElementById("panel-measure-status");
+
+    if (hudStatus) hudStatus.innerText = "Completado";
+    if (panelStatus) panelStatus.innerText = "Completado";
+    if (hudInst) hudInst.innerText = "Medición finalizada. Clic para trazar una nueva o 'Reiniciar' para borrar.";
+
+    updateMeasureActionButtons();
+}
+
+/**
+ * Deshace el último punto/vértice marcado.
+ */
+function undoLastMeasurePoint() {
+    if (!appState.measure.active || appState.measure.coordinates.length === 0) return;
+
+    if (appState.measure.isFinished) {
+        appState.measure.isFinished = false;
+        if (appState.measure.totalMarker) {
+            appState.measure.totalMarker.remove();
+            appState.measure.totalMarker = null;
+        }
+    }
+
+    appState.measure.coordinates.pop();
+    const marker = appState.measure.markers.pop();
+    if (marker) marker.remove();
+
+    syncMeasureGeoJSON();
+    recalculateMeasureMetrics();
+    updateMeasureActionButtons();
+}
+
+/**
+ * Limpia todas las geometrías de medición y restaura el estado original.
+ * @param {boolean} [andDeactivate=false] - Si es true, además apaga la herramienta y oculta el HUD
+ */
+function clearMeasurement(andDeactivate = false) {
+    if (!appState.measure) return;
+
+    // 1. Eliminar marcadores HTML
+    appState.measure.markers.forEach(m => m.remove());
+    appState.measure.markers = [];
+
+    if (appState.measure.totalMarker) {
+        appState.measure.totalMarker.remove();
+        appState.measure.totalMarker = null;
+    }
+
+    // 2. Limpiar coordenadas y métricas
+    appState.measure.coordinates = [];
+    appState.measure.isFinished = false;
+    appState.measure.totalDistance = 0;
+    appState.measure.totalArea = 0;
+
+    // 3. Limpiar capas GeoJSON
+    ["measure_polygon_src", "measure_line_src", "measure_rubberband_src", "measure_points_src"].forEach(srcId => {
+        if (map && map.getSource(srcId)) {
+            map.getSource(srcId).setData({ type: "FeatureCollection", features: [] });
+        }
+    });
+
+    // 4. Si se desactiva por completo:
+    if (andDeactivate) {
+        appState.measure.active = false;
+        appState.measure.mode = null;
+
+        if (map) {
+            map.doubleClickZoom.enable();
+            map.getCanvas().style.cursor = "";
+        }
+        document.body.classList.remove("measuring-active");
+
+        const btnDist = document.getElementById("btn-measure-distance");
+        const btnArea = document.getElementById("btn-measure-area");
+        const btnClear = document.getElementById("btn-measure-clear");
+        if (btnDist) btnDist.classList.remove("active");
+        if (btnArea) btnArea.classList.remove("active");
+        if (btnClear) btnClear.setAttribute("disabled", "true");
+
+        const hud = document.getElementById("measure-hud");
+        const panelCard = document.getElementById("panel-measure-card");
+        if (hud) hud.classList.add("hidden");
+        if (panelCard) panelCard.classList.add("hidden");
+    } else {
+        // Solo reiniciar contenido pero manteniendo el modo activo
+        recalculateMeasureMetrics();
+        updateMeasureActionButtons();
+    }
+}
+
+/**
+ * Sincroniza las fuentes GeoJSON de MapLibre con las coordenadas actuales.
+ */
+function syncMeasureGeoJSON() {
+    if (!map) return;
+    const coords = appState.measure.coordinates;
+
+    // 1. Puntos de vértices
+    const ptFeatures = coords.map((c, i) => ({
+        type: "Feature",
+        properties: { index: i + 1 },
+        geometry: { type: "Point", coordinates: c }
+    }));
+    const ptSrc = map.getSource("measure_points_src");
+    if (ptSrc) ptSrc.setData({ type: "FeatureCollection", features: ptFeatures });
+
+    // 2. Línea sólida
+    const lineSrc = map.getSource("measure_line_src");
+    if (lineSrc) {
+        if (coords.length >= 2) {
+            // Si es área y está finalizado, cerrar la línea alrededor
+            const lineCoords = (appState.measure.mode === "area" && appState.measure.isFinished)
+                ? [...coords, coords[0]]
+                : coords;
+
+            lineSrc.setData({
+                type: "FeatureCollection",
+                features: [{
+                    type: "Feature",
+                    geometry: { type: "LineString", coordinates: lineCoords }
+                }]
+            });
+        } else {
+            lineSrc.setData({ type: "FeatureCollection", features: [] });
+        }
+    }
+
+    // 3. Polígono de área
+    const polySrc = map.getSource("measure_polygon_src");
+    if (polySrc) {
+        if (appState.measure.mode === "area" && coords.length >= 3) {
+            const closed = [...coords, coords[0]];
+            polySrc.setData({
+                type: "FeatureCollection",
+                features: [{
+                    type: "Feature",
+                    geometry: { type: "Polygon", coordinates: [closed] }
+                }]
+            });
+        } else {
+            polySrc.setData({ type: "FeatureCollection", features: [] });
+        }
+    }
+}
+
+/**
+ * Recalcula la distancia o área y actualiza los elementos de texto en pantalla.
+ */
+function recalculateMeasureMetrics() {
+    const coords = appState.measure.coordinates;
+    const mode = appState.measure.mode;
+
+    let dist = 0;
+    let area = 0;
+
+    if (coords.length >= 2) {
+        dist = calculateTotalPathDistance(coords);
+        if (mode === "area" && coords.length >= 3) {
+            // Sumar el tramo de cierre al perímetro
+            dist += calculateHaversineDistance(coords[coords.length - 1], coords[0]);
+            area = calculateSphericalPolygonArea(coords);
+        }
+    }
+
+    appState.measure.totalDistance = dist;
+    appState.measure.totalArea = area;
+
+    // Elementos del HUD y Panel
+    const hudValPri = document.getElementById("measure-hud-val-primary");
+    const hudValSec = document.getElementById("measure-hud-val-secondary");
+    const hudInst = document.getElementById("measure-hud-instruction");
+
+    const panelPri = document.getElementById("panel-measure-primary");
+    const panelSec = document.getElementById("panel-measure-secondary");
+
+    if (mode === "distance") {
+        const textDist = formatDistance(dist);
+        const textSec = coords.length === 0
+            ? "0 puntos colocados"
+            : `${coords.length} puntos • ${Math.max(0, coords.length - 1)} tramos`;
+
+        if (hudValPri) hudValPri.innerText = textDist;
+        if (hudValSec) hudValSec.innerText = textSec;
+        if (panelPri) panelPri.innerText = textDist;
+        if (panelSec) panelSec.innerText = textSec;
+
+        if (!appState.measure.isFinished && hudInst) {
+            if (coords.length === 0) {
+                hudInst.innerText = "Haz clic en el mapa para marcar el primer punto del trayecto";
+            } else if (coords.length === 1) {
+                hudInst.innerText = "Haz clic para añadir el siguiente tramo • Doble clic para finalizar";
+            } else {
+                hudInst.innerText = "Haz clic para añadir más tramos • Doble clic o Enter para finalizar";
+            }
+        }
+    } else {
+        const textArea = formatArea(area);
+        const textPerim = `${formatDistance(dist)} (${coords.length} vértices)`;
+
+        if (hudValPri) hudValPri.innerText = textArea;
+        if (hudValSec) hudValSec.innerText = textPerim;
+        if (panelPri) panelPri.innerText = textArea;
+        if (panelSec) panelSec.innerText = textPerim;
+
+        if (!appState.measure.isFinished && hudInst) {
+            if (coords.length === 0) {
+                hudInst.innerText = "Haz clic en el mapa para trazar el primer vértice del polígono";
+            } else if (coords.length === 1) {
+                hudInst.innerText = "Marca el segundo vértice de la superficie";
+            } else if (coords.length === 2) {
+                hudInst.innerText = "Marca un tercer vértice para cerrar el polígono y ver el área";
+            } else {
+                hudInst.innerText = "Haz clic para más vértices • Doble clic o Enter para finalizar";
+            }
+        }
+    }
+}
+
+/**
+ * Habilita o deshabilita los botones de Finalizar y Deshacer según la cantidad de vértices.
+ */
+function updateMeasureActionButtons() {
+    const coords = appState.measure.coordinates;
+    const mode = appState.measure.mode;
+    const isFinished = appState.measure.isFinished;
+
+    const btnUndo = document.getElementById("btn-hud-undo");
+    const btnFinish = document.getElementById("btn-hud-finish");
+
+    if (btnUndo) {
+        btnUndo.disabled = (coords.length === 0);
+    }
+
+    if (btnFinish) {
+        if (isFinished) {
+            btnFinish.disabled = true;
+        } else if (mode === "distance") {
+            btnFinish.disabled = (coords.length < 2);
+        } else if (mode === "area") {
+            btnFinish.disabled = (coords.length < 3);
+        }
+    }
+}
+
+// ------------------------------------------------------------------------------
+// Fórmulas Geodésicas de Alta Precisión (Haversine & Spherical Excess)
+// ------------------------------------------------------------------------------
+
+/**
+ * Distancia ortodrómica Haversine entre dos puntos [lng, lat] en metros.
+ * @param {[number, number]} p1 - Coordenadas [lng1, lat1]
+ * @param {[number, number]} p2 - Coordenadas [lng2, lat2]
+ * @returns {number} Distancia en metros
+ */
+function calculateHaversineDistance(p1, p2) {
+    const R = 6371008.8; // Radio medio de la Tierra en metros (WGS-84)
+    const toRad = Math.PI / 180;
+    const lat1 = p1[1] * toRad;
+    const lat2 = p2[1] * toRad;
+    const deltaLat = (p2[1] - p1[1]) * toRad;
+    const deltaLng = (p2[0] - p1[0]) * toRad;
+
+    const a = Math.sin(deltaLat / 2) * Math.sin(deltaLat / 2) +
+              Math.cos(lat1) * Math.cos(lat2) *
+              Math.sin(deltaLng / 2) * Math.sin(deltaLng / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c;
+}
+
+/**
+ * Calcula la distancia acumulada de un arreglo de coordenadas [lng, lat].
+ * @param {Array<[number, number]>} coords
+ * @returns {number} Distancia total en metros
+ */
+function calculateTotalPathDistance(coords) {
+    if (!coords || coords.length < 2) return 0;
+    let total = 0;
+    for (let i = 0; i < coords.length - 1; i++) {
+        total += calculateHaversineDistance(coords[i], coords[i + 1]);
+    }
+    return total;
+}
+
+/**
+ * Calcula el área superficial geodésica de un polígono esférico en metros cuadrados (m²).
+ * Emplea el método de exceso esférico de Girard / Gauss-Bonnet.
+ * @param {Array<[number, number]>} coords - Anillo de coordenadas [lng, lat]
+ * @returns {number} Área en metros cuadrados
+ */
+function calculateSphericalPolygonArea(coords) {
+    if (!coords || coords.length < 3) return 0;
+    const R = 6371008.8;
+    const toRad = Math.PI / 180;
+    let total = 0;
+    const n = coords.length;
+
+    for (let i = 0; i < n; i++) {
+        const p1 = coords[i];
+        const p2 = coords[(i + 1) % n];
+        const lam1 = p1[0] * toRad;
+        const lam2 = p2[0] * toRad;
+        const phi1 = p1[1] * toRad;
+        const phi2 = p2[1] * toRad;
+        total += (lam2 - lam1) * (2 + Math.sin(phi1) + Math.sin(phi2));
+    }
+
+    return Math.abs((total * R * R) / 2.0);
+}
+
+/**
+ * Formatea una distancia en metros a texto legible (m o km).
+ * @param {number} meters
+ * @returns {string}
+ */
+function formatDistance(meters) {
+    if (!meters || meters <= 0) return "0.0 m";
+    if (meters >= 1000) {
+        return `${(meters / 1000).toFixed(2)} km`;
+    }
+    return `${meters.toFixed(1)} m`;
+}
+
+/**
+ * Formatea un área en m² a texto legible (m², ha o km²).
+ * @param {number} sqMeters
+ * @returns {string}
+ */
+function formatArea(sqMeters) {
+    if (!sqMeters || sqMeters <= 0) return "0.0 m²";
+    if (sqMeters >= 1000000) {
+        return `${(sqMeters / 1000000).toFixed(2)} km²`;
+    }
+    if (sqMeters >= 10000) {
+        const ha = (sqMeters / 10000).toFixed(2);
+        return `${ha} ha (${Math.round(sqMeters).toLocaleString()} m²)`;
+    }
+    return `${sqMeters.toFixed(1)} m²`;
 }
 
 

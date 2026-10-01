@@ -36,6 +36,42 @@
         <span class="pill-badge">Isovistas 2D / 3D</span>
     </header>
 
+    <!-- 4. HUD Flotante de Medición (Visible en tiempo real al medir) -->
+    <div id="measure-hud" class="measure-hud hidden">
+        <div class="measure-hud-header">
+            <span class="measure-hud-icon" id="measure-hud-icon">📏</span>
+            <div class="measure-hud-texts">
+                <div class="measure-hud-row-title">
+                    <span class="measure-hud-title" id="measure-hud-title">Medición de Distancia</span>
+                    <span class="measure-hud-status-chip" id="measure-hud-status">Activo</span>
+                </div>
+                <span class="measure-hud-instruction" id="measure-hud-instruction">Haz clic en el mapa para marcar el primer punto</span>
+            </div>
+            <button type="button" class="btn-measure-close" id="btn-measure-hud-close" title="Cerrar herramienta de medición (Esc)">✕</button>
+        </div>
+        <div class="measure-hud-metrics">
+            <div class="measure-metric-box">
+                <span class="measure-metric-label" id="measure-hud-lbl-primary">Distancia Total</span>
+                <span class="measure-metric-val" id="measure-hud-val-primary">0.0 m</span>
+            </div>
+            <div class="measure-metric-box">
+                <span class="measure-metric-label" id="measure-hud-lbl-secondary">Detalle</span>
+                <span class="measure-metric-sub" id="measure-hud-val-secondary">0 puntos colocados</span>
+            </div>
+        </div>
+        <div class="measure-hud-actions">
+            <button type="button" class="btn-measure-action" id="btn-hud-undo" title="Deshacer último punto (Ctrl+Z o Backspace)" disabled>
+                <span>↩</span> Deshacer
+            </button>
+            <button type="button" class="btn-measure-action btn-finish" id="btn-hud-finish" title="Finalizar medición actual (Doble clic o Enter)" disabled>
+                <span>✓</span> Finalizar
+            </button>
+            <button type="button" class="btn-measure-action btn-clear" id="btn-hud-reset" title="Limpiar y reiniciar">
+                <span>🗑️</span> Reiniciar
+            </button>
+        </div>
+    </div>
+
 
     <!-- 5. Panel Lateral Flotante de Control (Derecha) -->
     <aside id="main-panel">
@@ -227,6 +263,38 @@
                     <input type="checkbox" id="chk-referencias" checked>
                     <span class="slider amber"></span>
                 </label>
+            </div>
+
+            <!-- SECCIÓN: HERRAMIENTAS DE MEDICIÓN -->
+            <div class="section-title">
+                <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path></svg>
+                Herramientas de Medición
+            </div>
+            <div class="measure-selector-grid">
+                <button type="button" class="btn-measure" id="btn-measure-distance" title="Medir distancia lineal o ruta multipunto en metros y kilómetros">
+                    <span>📏</span> Distancia
+                </button>
+                <button type="button" class="btn-measure" id="btn-measure-area" title="Medir área poligonal y perímetro en m² y hectáreas">
+                    <span>📐</span> Área
+                </button>
+                <button type="button" class="btn-measure btn-measure-clear" id="btn-measure-clear" title="Limpiar geometrías medidas y restaurar cursor" disabled>
+                    <span>🗑️</span> Limpiar
+                </button>
+            </div>
+
+            <!-- Tarjeta de Resultados de Medición en el Panel -->
+            <div class="measure-result-card hidden" id="panel-measure-card">
+                <div class="measure-card-header">
+                    <span class="measure-card-badge" id="panel-measure-badge">📏 Distancia</span>
+                    <span class="measure-card-status" id="panel-measure-status">En curso</span>
+                </div>
+                <div class="measure-card-val" id="panel-measure-primary">0.0 m</div>
+                <div class="measure-card-sub" id="panel-measure-secondary">0 puntos colocados</div>
+                <div class="measure-card-hint">
+                    <span>• Clic:</span> añade puntos de medición<br>
+                    <span>• Doble clic / Enter:</span> finaliza el trazo<br>
+                    <span>• Ctrl+Z:</span> deshacer • <span>Esc:</span> salir
+                </div>
             </div>
 
             <!-- SECCIÓN 3: HITOS URBANOS Y BÚSQUEDA -->
