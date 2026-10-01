@@ -232,20 +232,6 @@ function setupLayers() {
         layout: { visibility: "none" } // Inicia apagada (Dark Matter por defecto)
     });
 
-    // Capa de nombres de calles y vialidades (híbrida sobre satélite)
-    map.addSource("satellite-labels-src", {
-        type: "raster",
-        tiles: ["https://basemaps.cartocdn.com/rastertiles/dark_only_labels/{z}/{x}/{y}.png"],
-        tileSize: 256
-    });
-
-    map.addLayer({
-        id: "satellite-labels-layer",
-        type: "raster",
-        source: "satellite-labels-src",
-        layout: { visibility: "none" }
-    });
-
     // -------------------------------------------------------------------------
     // CAPA 1: EDIFICACIONES URBANAS (2D BASE)
     // -------------------------------------------------------------------------
@@ -673,26 +659,12 @@ function setBasemap(mode) {
             }
         });
 
-        // Mostrar control de vialidades y encender capa si el switch está marcado
-        const rowSatLabels = document.getElementById("row-satellite-labels");
-        if (rowSatLabels) rowSatLabels.classList.remove("hidden");
-        const chkSatLabels = document.getElementById("chk-satellite-labels");
-        const satLabelsVis = (!chkSatLabels || chkSatLabels.checked) ? "visible" : "none";
-        if (map.getLayer("satellite-labels-layer")) {
-            map.setLayoutProperty("satellite-labels-layer", "visibility", satLabelsVis);
-        }
-
         if (btnDark) btnDark.classList.remove("active");
         if (btnSat) btnSat.classList.add("active");
     } else {
         if (map.getLayer("satellite-layer")) {
             map.setLayoutProperty("satellite-layer", "visibility", "none");
         }
-        if (map.getLayer("satellite-labels-layer")) {
-            map.setLayoutProperty("satellite-labels-layer", "visibility", "none");
-        }
-        const rowSatLabels = document.getElementById("row-satellite-labels");
-        if (rowSatLabels) rowSatLabels.classList.add("hidden");
 
         // Restaurar visibilidad de las capas base Carto Dark
         cartoBaseLayerIds.forEach(id => {
@@ -2732,25 +2704,7 @@ function setupAdvancedFeatures() {
     const btnCloseProf = document.getElementById("btn-close-profile");
     if (btnCloseProf) btnCloseProf.addEventListener("click", () => toggleProfileDrawer(false));
 
-    // 3. Botones de simulación de luz solar 3D
-    document.querySelectorAll("#row-sun-lighting .btn-exag").forEach(btn => {
-        btn.addEventListener("click", () => {
-            const mode = btn.dataset.sun;
-            setSunLighting(mode);
-        });
-    });
-
-    // 4. Switch de etiquetas viales híbridas sobre satélite
-    const chkSatLabels = document.getElementById("chk-satellite-labels");
-    if (chkSatLabels) {
-        chkSatLabels.addEventListener("change", (e) => {
-            if (map && map.getLayer("satellite-labels-layer")) {
-                map.setLayoutProperty("satellite-labels-layer", "visibility", e.target.checked ? "visible" : "none");
-            }
-        });
-    }
-
-    // 5. Selector de Pestañas de Perfil (Ambas, Isovistas, Altitud)
+    // 3. Selector de Pestañas de Perfil (Ambas, Isovistas, Altitud)
     const tabBoth = document.getElementById("tab-prof-both");
     const tabIso = document.getElementById("tab-prof-iso");
     const tabElev = document.getElementById("tab-prof-elev");
@@ -3103,49 +3057,6 @@ function updateProfileNeedle(frameIndex) {
     if (needleOld) needleOld.style.left = pctStr;
 }
 
-/**
- * Aplica la simulación de luz solar y sombras 3D (Cenit, Mañana, Ocaso).
- * @param {'noon' | 'morning' | 'sunset'} mode
- */
-function setSunLighting(mode) {
-    if (!map) return;
-
-    // Actualizar botones UI
-    document.querySelectorAll("#row-sun-lighting .btn-exag").forEach(btn => {
-        btn.classList.toggle("active", btn.dataset.sun === mode);
-    });
-
-    let pos = [1.5, 180, 75]; // Cenital
-    let color = "#ffffff";
-    let intensity = 0.55;
-
-    if (mode === "morning") {
-        pos = [1.5, 105, 32];
-        color = "#fed7aa"; // Tono dorado matutino
-        intensity = 0.70;
-    } else if (mode === "sunset") {
-        pos = [1.5, 260, 22];
-        color = "#fdba74"; // Tono cálido atardecer
-        intensity = 0.75;
-    } else {
-        // noon
-        pos = [1.5, 180, 75];
-        color = "#f8fafc";
-        intensity = 0.55;
-    }
-
-    try {
-        map.setLight({
-            anchor: "map",
-            position: pos,
-            color: color,
-            intensity: intensity
-        });
-        showToast(`☀️ Iluminación 3D ajustada: ${mode === "morning" ? "Mañana (Este)" : mode === "sunset" ? "Ocaso (Oeste)" : "Mediodía (Cenit)"}`);
-    } catch (e) {
-        console.warn("[Luz Solar 3D] Error al aplicar luz:", e);
-    }
-}
 
 /**
  * Exporta la vista actual 3D del mapa como imagen PNG en alta resolución con membrete IMPLAN.

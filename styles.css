@@ -1793,14 +1793,6 @@ body.measuring-active .maplibregl-canvas {
     box-shadow: 0 4px 12px rgba(56, 189, 248, 0.25);
 }
 
-/* Botones de sol / iluminación 3D */
-#row-sun-lighting .btn-exag.active {
-    background: linear-gradient(135deg, #f59e0b, #d97706);
-    border-color: #fde68a;
-    color: #ffffff;
-    box-shadow: 0 0 10px rgba(245, 158, 11, 0.45);
-}
-
 /* Drawer Inferior del Perfil de Apertura Visual y Altitudinal */
 .profile-chart-drawer {
     position: fixed;

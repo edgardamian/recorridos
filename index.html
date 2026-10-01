@@ -123,21 +123,6 @@
                 </button>
             </div>
 
-            <!-- Switch Etiquetas de Calles en Satélite -->
-            <div class="control-item hidden" id="row-satellite-labels" onclick="document.getElementById('chk-satellite-labels').click()">
-                <div class="item-info">
-                    <span class="badge-icon">🏷️</span>
-                    <div>
-                        <span>Vialidades en Satélite</span>
-                        <small>Capa híbrida de nombres de calles</small>
-                    </div>
-                </div>
-                <label class="switch" onclick="event.stopPropagation()">
-                    <input type="checkbox" id="chk-satellite-labels" checked>
-                    <span class="slider"></span>
-                </label>
-            </div>
-
             <!-- SECCIÓN 1: MODOS Y VISUALIZACIÓN 3D -->
             <div class="section-title">
                 <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 10l-2 1m0 0l-2-1m2 1v2.5M20 7l-2 1m2-1l-2-1m2 1v2.5M14 4l-2-1-2 1M4 7l2-1M4 7l2 1M4 7v2.5M12 21l-2-1m2 1l2-1m-2 1v-2.5M6 18l-2-1v-2.5M18 18l2-1v-2.5"></path></svg>
@@ -191,16 +176,6 @@
                     <button type="button" class="btn-exag active" id="btn-bld-1x" data-type="buildings" data-val="1.0" title="Altura real de edificios (1x)">Real (1x)</button>
                     <button type="button" class="btn-exag" id="btn-bld-2x" data-type="buildings" data-val="2.0" title="Exageración de altura al doble (2x)">2x</button>
                     <button type="button" class="btn-exag" id="btn-bld-3x" data-type="buildings" data-val="3.0" title="Exageración de altura al triple (3x)">3x</button>
-                </div>
-            </div>
-
-            <!-- Iluminación Solar 3D -->
-            <div class="exag-btn-row" id="row-sun-lighting">
-                <span class="exag-label">Sol 3D:</span>
-                <div class="exag-btn-group">
-                    <button type="button" class="btn-exag active" id="btn-sun-noon" data-sun="noon" title="Sol cenital de mediodía">☀️ Cenit</button>
-                    <button type="button" class="btn-exag" id="btn-sun-morning" data-sun="morning" title="Luz matutina rasante desde el Este">🌅 Mañana</button>
-                    <button type="button" class="btn-exag" id="btn-sun-sunset" data-sun="sunset" title="Luz dorada de atardecer desde el Oeste">🌇 Ocaso</button>
                 </div>
             </div>
 
