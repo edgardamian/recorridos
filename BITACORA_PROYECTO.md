@@ -100,4 +100,61 @@ git add .
 git commit -m "feat/fix: descripción del cambio"
 git push origin main
 ```
-*GitHub Pages sirve automáticamente la rama `main` desde la raíz.*
+
+## 📌 Registro de Ajustes Clave (Soluciones de Arquitectura)
+
+### Corrección de Mapa Satelital y Estabilidad de Zoom en Perspectiva 3D
+- **Aislamiento de Mapas Base**: Al alternar a `satelital`, se ocultan explícitamente las capas vectoriales del mapa base `Carto Dark Matter` (`source: 'carto'` y `id: 'background'`), restaurándolas al volver a `oscuro`. Esto evita que el fondo oscuro quede por debajo o se filtre visualmente.
+- **Sincronización DEM de Elevación**: Se ajustó `maxzoom: 14` en la fuente DEM `terrain-dem-src` para alinearse con el `maxzoom: 14` de las teselas Carto. Esto elimina por completo el error WebGL interno `cannot calculate elevation if elevation maxzoom > source.maxzoom` que corrompía la matriz de elevación en zooms $\ge 15$.
+- **Límites de Frustum y Cámara 3D**: Se ajustó `maxPitch: 70` (en lugar de 85°) y `maxZoom: 21` para prevenir la penetración del plano de recorte cercano (`nearZ`) contra la superficie del terreno y evitar la desaparición intermitente de la malla y edificios durante el zoom en perspectiva.
+
+### Herramientas de Medición Interactiva (Distancia y Área)
+- **Modos de Medición**:
+  - `Distancia`: Trazado de trayectorias multipunto con cálculo geodésico Haversine ($m$ y $km$), visualización de tramos, vértices numerados y guía elástica (*rubberband*) interactiva con previsualización en vivo.
+  - `Área`: Delimitación de polígonos superficiales con cálculo de exceso esférico ($m^2$, hectáreas y $km^2$) y perímetro continuo.
+- **Componentes de Interfaz**:
+  - HUD superior flotante (`#measure-hud`) con métricas en tiempo real, instrucciones dinámicas de uso, botón de deshacer último punto (`Ctrl+Z` / `Backspace`), finalizar (`Doble Clic` / `Enter`) y cerrar (`Esc`).
+  - Tarjeta de telemetría en el panel lateral derecho (`#panel-measure-card`) sincronizada con el estado.
+  - Insignia flotante con el resultado final fijada sobre el último vértice (distancia) o el centroide geométrico (área).
+- **Aislamiento de Eventos**: Supresión automática de popups de edificios e hitos urbanos mientras la herramienta está activa, con desactivación temporal del `doubleClickZoom` de MapLibre para finalizar cómodamente con doble clic.
+
+### Etiquetas Nativas en WebGL para Hitos (Eliminación de Retraso/Lag)
+- **Causa del retraso**: Las etiquetas de los hitos se instanciaban como 26 elementos DOM HTML (`maplibregl.Marker`). Al mover el mapa o reproducir la animación a 60 fps, el navegador debía calcular y sincronizar en el hilo principal la propiedad CSS `transform: translate3d(...)` para cada elemento DOM, provocando un retraso visible (1-2 fotogramas) respecto al lienzo WebGL acelerado por hardware.
+- **Solución implementada**:
+  - Se sustituyeron los marcadores DOM por capas nativas MapLibre de tipo `symbol`: `referencias-labels` (para la visualización general) y `referencias-active-label` (para el hito seleccionado).
+  - Al renderizarse directamente en la GPU vía WebGL dentro de la misma llamada de dibujo que el mapa base y el terreno 3D, el desfase es **cero absoluto (0 ms)** tanto en paneo libre como en giros e inclinaciones 3D o reproducción de animación.
+  - Se configuró `text-pitch-alignment: "viewport"` para que las etiquetas se mantengan orientadas verticalmente hacia la cámara incluso en perspectiva 3D (pitch 58°).
+  - Clic interactivo y cursor `pointer` vinculados directamente a la capa de símbolos nativa.
+
+### Respaldo en GitHub y Nuevas Mejoras Avanzadas
+- **Estrategia de Respaldo y Ramas en Git**:
+  - `main` (commit `5fd6ccb`) respaldado en `origin/main` y etiquetado con el tag inmutable `v1.0-estable` con las herramientas de medición y etiquetas nativas WebGL.
+  - Las nuevas mejoras se desarrollaron en la rama `feature/mejoras-avanzadas` (commit `d0794a2`), permitiendo probar todo libremente sin alterar el estado estable.
+- **Mejoras Incorporadas**:
+  1. **Gráficas Duales Sincronizadas: Isovistas y Perfil Altitudinal (`#profile-chart-drawer`)**:
+     - **Gráfica 1 (Área Visual de Isovistas)**: Curva SVG interactiva en cian brillante (`#38bdf8`) que cuantifica la cuenca visible en cada punto del recorrido (máx: 26,613 $m^2$, prom: 18,172 $m^2$, mín: 1,238 $m^2$) con hitos urbanos destacados.
+     - **Gráfica 2 (Perfil Altitudinal Topográfico DEM)**: Curva SVG en esmeralda vivo (`#10b981`) con elevaciones reales extraídas del modelo digital de elevación (AWS Terrarium DEM) para los 235 puntos del corredor (cota máx: 1,929.5 msnm en el Centro Histórico, cota mín: 1,892.0 msnm en el Río Grande/Pípila, desnivel: +37.5 m). Hitos urbanos destacados en **amarillo dorado** (`#fbbf24`), alineados cromáticamente con la gráfica de isovistas.
+     - **Selector de Vistas**: Pestañas `#tab-prof-both` (Ambas), `#tab-prof-iso` (sólo Isovistas) y `#tab-prof-elev` (sólo Altitud).
+     - **Popup Bajo Demanda (Solo Clic) y Agujas Sincronizadas**: El popup/tooltip no interfiere con el movimiento libre del cursor; aparece **únicamente al hacer clic o arrastrar** sobre cualquiera de las gráficas, permaneciendo visible para su lectura con botón de cierre (`✕`) o al hacer clic fuera. Sincroniza la posición del observador a 60 fps e incluye telemetría completa (distancia, hito, área visual y cota msnm).
+     - **Telemetría en Vivo**: Incorporación del chip `⛰️ Cota` en la barra HUD de animación.
+  2. **Corrección Definitiva de Captura de Pantalla HD en PNG (`exportMapScreenshot`)**:
+     - **Causa de la captura en blanco/transparente**: En MapLibre GL JS v5, `preserveDrawingBuffer` debe declararse dentro de `canvasContextAttributes: { preserveDrawingBuffer: true, antialias: true }`. Al omitirlo en la configuración del contexto WebGL, el búfer de dibujo se limpiaba tras cada frame; al invocar `drawImage()` sobre el canvas inactivo, los píxeles eran 100% transparentes (alpha = 0), visualizándose como fondo blanco en el visor de fotos de Windows.
+     - **Solución implementada**:
+       1. Configuración de `canvasContextAttributes: { preserveDrawingBuffer: true, antialias: true }` en `initMap()`.
+       2. Ejecución de `map.triggerRepaint()` y espera síncrona de `map.once("render", ...)` antes de leer el lienzo.
+       3. Relleno previo del lienzo de salida con fondo sólido `#090d16` (cero transparencia) antes de dibujar el mapa y el membrete institucional IMPLAN.
+  3. **Conmutación Robusta de Seguimiento de Cámara (2D Cenital vs 3D Detrás)**:
+     - **Causa del bloqueo en 3D**: Al conmutar de 2D a 3D, se activaba la extrusión de edificios (`buildings3DActive = true`). En `renderAnimationFrame`, la condición para cámara 3D evaluaba `appState.buildings3DActive || curPitch > 15`, lo que impedía volver a 2D y forzaba perpetuamente `pitch: 58°` y el rumbo de avance. Asimismo, la llamada 2D no redefinía `pitch: 0` ni `bearing: 0`.
+     - **Solución implementada**: El modo de seguimiento de cámara se rige ahora **estrictamente por `appState.animCameraMode`** (independiente de si hay capas 3D encendidas). Al conmutar a 2D, se restauran explícitamente `pitch: 0`, `bearing: 0` y `offset: [0, 0]`, garantizando una transición inmediata y suave a vista cenital top-down tanto en reproducción como en scrubbing interactivo.
+
+   4. **Iconografía Vectorial Minimalista y Neutral (Reemplazo Integral de Emojis)**:
+      - **Objetivo**: Elevar la estética a un estándar institucional riguroso, sustituyendo todos los emojis informales por iconos vectoriales SVG limpios inspirados en Lucide/Feather con clase global .ui-icon.
+      - **Diseño cromático**: Color neutro por defecto (--text-secondary: #94a3b8) que combina y resalta sobre el fondo glassmorphic oscuro; transición a blanco (#ffffff) en hover y a cian brillante (#38bdf8) o blanco en estado activo.
+      - **Elementos renovados**: Selector de mapas base (Luna y Globo/Satélite), relieves DEM y edificaciones, botones 2D/3D y encuadre, herramientas de medición (distancia, área, limpiar, deshacer, finalizar), botones de captura HD, perfiles de diagnóstico, chips de telemetría HUD (recorrido, isovistas, área acumulada, cota topográfica e hitos) y estados de reproducción.
+   5. **Corrección de Truncamiento en Nombres de Hitos Durante la Animación**:
+      - **Causa del corte**: El contenedor flotante .anim-player-floating tenía un ancho estático de 680px y .chip-hito aplicaba max-width: 210px; overflow: hidden; text-overflow: ellipsis;, provocando que referencias largas (ej. *'Templo de San José y Plaza de la Reforma Agraria (a 28 m)'*) se cortaran con puntos suspensivos.
+      - **Solución implementada**:
+        1. Se eliminó la restricción max-width: 210px en .chip-hito, asignando max-width: none; flex-shrink: 0; white-space: nowrap; font-weight: 700; color: #fbbf24;.
+        2. Se amplió el ancho dinámico del reproductor a width: min(860px, calc(100vw - 360px)) con contenedor de chips responsivo (overflow-x: auto sin barras de scroll invasivas).
+        3. En pp.js (updateAnimationHUD), se vinculó elHito.title con el texto completo para garantizar lectura en tooltip flotante nativo en cualquier pantalla.
+
