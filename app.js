@@ -888,11 +888,11 @@ function updateCamModeUI(is3D) {
     if (btn) {
         if (is3D) {
             btn.classList.add("active");
-            if (icon) icon.innerText = "🌐";
+            if (icon) icon.innerHTML = `<svg class="ui-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>`;
             if (text) text.innerText = "Cámara 3D (Detrás)";
         } else {
             btn.classList.remove("active");
-            if (icon) icon.innerText = "📐";
+            if (icon) icon.innerHTML = `<svg class="ui-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/><path d="M3 15h18"/><path d="M9 3v18"/><path d="M15 3v18"/></svg>`;
             if (text) text.innerText = "Vista 2D (Cenital)";
         }
     }
@@ -1136,7 +1136,10 @@ function showLandmarkPopup(coords, nombre, fid) {
 
     const html = `
         <div style="padding: 4px 6px;">
-            <div style="font-size:10px; font-weight:700; color:#fbbf24; background:rgba(251,191,36,0.15); padding:2px 7px; border-radius:4px; display:inline-block; margin-bottom:5px; text-transform:uppercase;">📍 Hito Urbano #${fid}</div>
+            <div style="font-size:10px; font-weight:700; color:#fbbf24; background:rgba(251,191,36,0.15); padding:2px 7px; border-radius:4px; display:inline-flex; align-items:center; gap:4px; margin-bottom:5px; text-transform:uppercase;">
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                Hito Urbano #${fid}
+            </div>
             <div style="font-size:14px; font-weight:700; color:#f8fafc; line-height:1.3; margin-bottom:6px;">${nombre}</div>
             <div style="font-size:11px; color:#94a3b8; display:flex; flex-direction:column; gap:2px;">
                 <span><strong>Latitud:</strong> ${coords[1].toFixed(6)}° N</span>
@@ -1186,7 +1189,10 @@ function showBuildingPopup(lngLat, props) {
 
     const html = `
         <div style="padding: 4px 6px; min-width: 175px;">
-            <div style="font-size:10px; font-weight:700; color:#38bdf8; background:rgba(56,189,248,0.15); padding:2px 7px; border-radius:4px; display:inline-block; margin-bottom:5px; text-transform:uppercase;">🏢 Edificación #${fid}</div>
+            <div style="font-size:10px; font-weight:700; color:#38bdf8; background:rgba(56,189,248,0.15); padding:2px 7px; border-radius:4px; display:inline-flex; align-items:center; gap:4px; margin-bottom:5px; text-transform:uppercase;">
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="2" width="16" height="20" rx="2" ry="2"/><line x1="9" y1="22" x2="9" y2="2"/><line x1="15" y1="22" x2="15" y2="2"/><line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="17" x2="20" y2="17"/></svg>
+                Edificación #${fid}
+            </div>
             <div style="font-size:16px; font-weight:800; color:#f8fafc; margin-bottom:6px;">
                 ${altura} <span style="font-size:11.5px; font-weight:500; color:#94a3b8;">de altura</span>
             </div>
@@ -1251,12 +1257,13 @@ function toggleAllLandmarkNames() {
     }
 
     if (btn) {
+        const tagSvg = `<svg class="ui-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>`;
         if (appState.landmarksLabelsVisible) {
             btn.classList.add("active");
-            btn.innerHTML = `<span>🏷️</span> Ocultar Nombres de Hitos`;
+            btn.innerHTML = `${tagSvg} Ocultar Nombres de Hitos`;
         } else {
             btn.classList.remove("active");
-            btn.innerHTML = `<span>🏷️</span> Mostrar Nombres de Hitos (Off)`;
+            btn.innerHTML = `${tagSvg} Mostrar Nombres de Hitos (Off)`;
         }
     }
 }
@@ -1481,7 +1488,7 @@ function renderLandmarksList(features) {
             item.classList.add("active");
         }
         item.innerHTML = `
-            <span>📍 #${fid} ${nombre}</span>
+            <span style="display:flex; align-items:center; gap:5px;"><svg class="ui-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg> #${fid} ${nombre}</span>
             <span style="font-size: 10px; opacity: 0.6;">Ver</span>
         `;
 
@@ -1727,8 +1734,15 @@ function updateAnimationHUD(frame, total) {
     }
 
     const elHito = document.getElementById("anim-hito-val");
-    if (elHito && frame.hito) {
-        elHito.innerText = `${frame.hito.nombre} (a ${frame.hito.dist_m.toFixed(0)} m)`;
+    if (elHito) {
+        if (frame.hito) {
+            const hitoText = `${frame.hito.nombre} (a ${frame.hito.dist_m.toFixed(0)} m)`;
+            elHito.innerText = hitoText;
+            elHito.title = hitoText;
+        } else {
+            elHito.innerText = "Corredor Morelia";
+            elHito.title = "Corredor Morelia Norte-Sur";
+        }
     }
 
     const slider = document.getElementById("anim-slider");
@@ -1836,11 +1850,11 @@ function updatePlayButtonUI(isPlaying) {
     if (btn) {
         if (isPlaying) {
             btn.classList.add("playing");
-            if (icon) icon.innerText = "⏸";
+            if (icon) icon.innerHTML = `<svg class="ui-icon" width="12" height="12" viewBox="0 0 24 24" fill="currentColor" stroke="none"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>`;
             if (text) text.innerText = "Pausar";
         } else {
             btn.classList.remove("playing");
-            if (icon) icon.innerText = "▶";
+            if (icon) icon.innerHTML = `<svg class="ui-icon" width="12" height="12" viewBox="0 0 24 24" fill="currentColor" stroke="none"><polygon points="6 4 20 12 6 20 6 4"/></svg>`;
             if (text) text.innerText = appState.animCurrentFrame > 0 ? "Continuar" : "Iniciar Recorrido";
         }
     }
@@ -1873,12 +1887,13 @@ function toggleCameraFollow(forceState) {
 
     const btn = document.getElementById("btn-anim-cam-follow");
     if (btn) {
+        const videoSvg = `<svg class="ui-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m22 8-6 4 6 4V8Z"/><rect width="14" height="12" x="2" y="6" rx="2"/></svg>`;
         if (appState.animCameraFollow) {
             btn.classList.add("active");
-            btn.innerHTML = `<span>🎥</span> Seguir Cámara (On)`;
+            btn.innerHTML = `${videoSvg} Seguir Cámara (On)`;
         } else {
             btn.classList.remove("active");
-            btn.innerHTML = `<span>🎥</span> Seguir Cámara (Off)`;
+            btn.innerHTML = `${videoSvg} Seguir Cámara (Off)`;
         }
     }
 }
@@ -1897,6 +1912,7 @@ function toggleAnimationPlayer(forceState) {
     const bar = document.getElementById("anim-player-bar");
     const pill = document.getElementById("btn-anim-pill-launcher");
     const btnSide = document.getElementById("btn-toggle-anim-player");
+    const playSvg = `<svg class="ui-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>`;
 
     if (appState.animPlayerVisible) {
         // 1. Mostrar barra de controles y ocultar botón pill minimizado
@@ -1904,7 +1920,7 @@ function toggleAnimationPlayer(forceState) {
         if (pill) pill.classList.add("hidden");
         if (btnSide) {
             btnSide.classList.add("active");
-            btnSide.innerHTML = `<span>🎬</span> Controles de Animación (Activo)`;
+            btnSide.innerHTML = `${playSvg} Controles de Animación (Activo)`;
         }
 
         // 2. Mostrar el marcador del observador
@@ -1926,7 +1942,7 @@ function toggleAnimationPlayer(forceState) {
         if (pill) pill.classList.remove("hidden");
         if (btnSide) {
             btnSide.classList.remove("active");
-            btnSide.innerHTML = `<span>🎬</span> Activar Modo Animación`;
+            btnSide.innerHTML = `${playSvg} Activar Modo Animación`;
         }
 
         // 2. Si estaba reproduciéndose, pausar
@@ -2083,7 +2099,7 @@ function setMeasureMode(mode) {
     if (panelCard) panelCard.classList.remove("hidden");
 
     if (mode === "distance") {
-        if (hudIcon) hudIcon.innerText = "📏";
+        if (hudIcon) hudIcon.innerHTML = `<svg class="ui-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.3 8.7 8.7 21.3c-1 1-2.6 1-3.6 0l-2.4-2.4c-1-1-1-2.6 0-3.6L15.3 2.7c1-1 2.6-1 3.6 0l2.4 2.4c1 1 1 2.6 0 3.6Z"/><path d="m7.5 10.5 2 2"/><path d="m10.5 7.5 2 2"/><path d="m13.5 4.5 2 2"/><path d="m4.5 13.5 2 2"/></svg>`;
         if (hudTitle) hudTitle.innerText = "Medición de Distancia";
         if (hudInst) hudInst.innerText = "Haz clic en el mapa para marcar el primer punto del trayecto";
         if (hudLblPri) hudLblPri.innerText = "Distancia Total";
@@ -2091,12 +2107,12 @@ function setMeasureMode(mode) {
         if (hudLblSec) hudLblSec.innerText = "Tramos y Vértices";
         if (hudValSec) hudValSec.innerText = "0 puntos colocados";
 
-        if (panelBadge) panelBadge.innerText = "📏 Distancia";
+        if (panelBadge) panelBadge.innerHTML = `<svg class="ui-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.3 8.7 8.7 21.3c-1 1-2.6 1-3.6 0l-2.4-2.4c-1-1-1-2.6 0-3.6L15.3 2.7c1-1 2.6-1 3.6 0l2.4 2.4c1 1 1 2.6 0 3.6Z"/><path d="m7.5 10.5 2 2"/><path d="m10.5 7.5 2 2"/><path d="m13.5 4.5 2 2"/><path d="m4.5 13.5 2 2"/></svg> Distancia`;
         if (panelStatus) panelStatus.innerText = "En curso";
         if (panelPri) panelPri.innerText = "0.0 m";
         if (panelSec) panelSec.innerText = "0 puntos colocados";
     } else {
-        if (hudIcon) hudIcon.innerText = "📐";
+        if (hudIcon) hudIcon.innerHTML = `<svg class="ui-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3h4v4H3z"/><path d="M17 3h4v4h-4z"/><path d="M17 17h4v4h-4z"/><path d="M3 17h4v4H3z"/><path d="m5 7 0 10"/><path d="m7 5 10 0"/><path d="m19 7 0 10"/><path d="m7 19 10 0"/></svg>`;
         if (hudTitle) hudTitle.innerText = "Medición de Área Poligonal";
         if (hudInst) hudInst.innerText = "Haz clic en el mapa para trazar los vértices de la superficie";
         if (hudLblPri) hudLblPri.innerText = "Área Superficial";
@@ -2104,7 +2120,7 @@ function setMeasureMode(mode) {
         if (hudLblSec) hudLblSec.innerText = "Perímetro";
         if (hudValSec) hudValSec.innerText = "0.0 m (0 vértices)";
 
-        if (panelBadge) panelBadge.innerText = "📐 Área";
+        if (panelBadge) panelBadge.innerHTML = `<svg class="ui-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3h4v4H3z"/><path d="M17 3h4v4h-4z"/><path d="M17 17h4v4h-4z"/><path d="M3 17h4v4H3z"/><path d="m5 7 0 10"/><path d="m7 5 10 0"/><path d="m19 7 0 10"/><path d="m7 19 10 0"/></svg> Área`;
         if (panelStatus) panelStatus.innerText = "En curso";
         if (panelPri) panelPri.innerText = "0.0 m²";
         if (panelSec) panelSec.innerText = "0 vértices colocados";
@@ -2295,7 +2311,7 @@ function finishMeasurement() {
     if (appState.measure.mode === "distance") {
         const lastCoord = coords[coords.length - 1];
         totalEl.innerHTML = `
-            <div class="total-title">📏 Distancia Total</div>
+            <div class="total-title"><svg class="ui-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.3 8.7 8.7 21.3c-1 1-2.6 1-3.6 0l-2.4-2.4c-1-1-1-2.6 0-3.6L15.3 2.7c1-1 2.6-1 3.6 0l2.4 2.4c1 1 1 2.6 0 3.6Z"/><path d="m7.5 10.5 2 2"/><path d="m10.5 7.5 2 2"/><path d="m13.5 4.5 2 2"/><path d="m4.5 13.5 2 2"/></svg> Distancia Total</div>
             <div class="total-value">${formatDistance(appState.measure.totalDistance)}</div>
             <div class="total-sub">${coords.length} vértices • ${coords.length - 1} tramos</div>
         `;
@@ -2309,7 +2325,7 @@ function finishMeasurement() {
         const centroid = [sumLng / coords.length, sumLat / coords.length];
 
         totalEl.innerHTML = `
-            <div class="total-title">📐 Superficie Poligonal</div>
+            <div class="total-title"><svg class="ui-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3h4v4H3z"/><path d="M17 3h4v4h-4z"/><path d="M17 17h4v4h-4z"/><path d="M3 17h4v4H3z"/><path d="m5 7 0 10"/><path d="m7 5 10 0"/><path d="m19 7 0 10"/><path d="m7 19 10 0"/></svg> Superficie Poligonal</div>
             <div class="total-value">${formatArea(appState.measure.totalArea)}</div>
             <div class="total-sub">Perímetro: ${formatDistance(appState.measure.totalDistance)}</div>
         `;
@@ -2973,10 +2989,10 @@ function setupDualProfileInteractivity(points, total) {
             tooltip.classList.remove("hidden");
             tooltip.style.left = `${relX}px`;
             if (ptDist) ptDist.innerText = `${(p.frame.dist_m / 1000).toFixed(2)} km (${p.frame.pct.toFixed(0)}%)`;
-            if (ptArea) ptArea.innerText = `👁️ ${p.frame.area_m2.toLocaleString()} m²`;
-            if (ptElev) ptElev.innerText = `⛰️ ${p.frame.elev_m !== undefined ? p.frame.elev_m.toFixed(1) : '--'} msnm`;
+            if (ptArea) ptArea.innerHTML = `<svg class="ui-icon" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg> ${p.frame.area_m2.toLocaleString()} m²`;
+            if (ptElev) ptElev.innerHTML = `<svg class="ui-icon" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m8 3 4 8 5-5 5 15H2L8 3z"/></svg> ${p.frame.elev_m !== undefined ? p.frame.elev_m.toFixed(1) : '--'} msnm`;
             if (ptHito) {
-                ptHito.innerText = p.frame.hito ? `📍 ${p.frame.hito.nombre}` : "";
+                ptHito.innerHTML = p.frame.hito ? `<svg class="ui-icon" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg> ${p.frame.hito.nombre}` : "";
             }
         }
 
@@ -3066,7 +3082,7 @@ async function exportMapScreenshot() {
     if (!map) return;
 
     try {
-        showToast("📸 Generando captura en alta definición...");
+        showToast("Generando captura en alta definición...");
 
         // 1. Forzar render síncrono del WebGL para capturar el búfer de dibujo actual
         map.triggerRepaint();
@@ -3136,10 +3152,10 @@ async function exportMapScreenshot() {
         link.click();
         document.body.removeChild(link);
 
-        showToast("📸 Captura HD descargada con membrete oficial");
+        showToast("Captura HD descargada con membrete oficial");
     } catch (err) {
         console.error("Error al exportar captura:", err);
-        showToast("⚠️ No se pudo generar la captura");
+        showToast("No se pudo generar la captura");
     }
 }
 

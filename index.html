@@ -34,13 +34,17 @@
     <header class="top-header-pill">
         <h1>Corredor Norte-Sur Morelia</h1>
         <span class="pill-badge">Isovistas 2D / 3D</span>
-        <button type="button" class="btn-pill-snapshot" id="btn-header-snapshot" title="Captura rápida en PNG">📸</button>
+        <button type="button" class="btn-pill-snapshot" id="btn-header-snapshot" title="Captura rápida en PNG">
+            <svg class="ui-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+        </button>
     </header>
 
     <!-- 4. HUD Flotante de Medición (Visible en tiempo real al medir) -->
     <div id="measure-hud" class="measure-hud hidden">
         <div class="measure-hud-header">
-            <span class="measure-hud-icon" id="measure-hud-icon">📏</span>
+            <span class="measure-hud-icon" id="measure-hud-icon">
+                <svg class="ui-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.3 8.7 8.7 21.3c-1 1-2.6 1-3.6 0l-2.4-2.4c-1-1-1-2.6 0-3.6L15.3 2.7c1-1 2.6-1 3.6 0l2.4 2.4c1 1 1 2.6 0 3.6Z"/><path d="m7.5 10.5 2 2"/><path d="m10.5 7.5 2 2"/><path d="m13.5 4.5 2 2"/><path d="m4.5 13.5 2 2"/></svg>
+            </span>
             <div class="measure-hud-texts">
                 <div class="measure-hud-row-title">
                     <span class="measure-hud-title" id="measure-hud-title">Medición de Distancia</span>
@@ -62,13 +66,13 @@
         </div>
         <div class="measure-hud-actions">
             <button type="button" class="btn-measure-action" id="btn-hud-undo" title="Deshacer último punto (Ctrl+Z o Backspace)" disabled>
-                <span>↩</span> Deshacer
+                <svg class="ui-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"/></svg> Deshacer
             </button>
             <button type="button" class="btn-measure-action btn-finish" id="btn-hud-finish" title="Finalizar medición actual (Doble clic o Enter)" disabled>
-                <span>✓</span> Finalizar
+                <svg class="ui-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Finalizar
             </button>
             <button type="button" class="btn-measure-action btn-clear" id="btn-hud-reset" title="Limpiar y reiniciar">
-                <span>🗑️</span> Reiniciar
+                <svg class="ui-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg> Reiniciar
             </button>
         </div>
     </div>
@@ -116,10 +120,10 @@
             </div>
             <div class="basemap-selector-grid">
                 <button class="btn-basemap active" id="btn-bm-dark" title="Mapa vector oscuro sin distracciones">
-                    <span>🌙</span> Oscuro
+                    <svg class="ui-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg> Oscuro
                 </button>
                 <button class="btn-basemap" id="btn-bm-satellite" title="Fotografía satelital de alta resolución (ESRI)">
-                    <span>🛰️</span> Satélite
+                    <svg class="ui-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg> Satélite
                 </button>
             </div>
 
@@ -132,7 +136,7 @@
             <!-- Switch Terreno 3D -->
             <div class="control-item highlight-terrain" onclick="document.getElementById('chk-terreno-3d').click()">
                 <div class="item-info">
-                    <span class="badge-icon">⛰️</span>
+                    <span class="badge-icon"><svg class="ui-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m8 3 4 8 5-5 5 15H2L8 3z"/></svg></span>
                     <div>
                         <span>Terreno 3D (Relieve DEM)</span>
                         <small>Elevación topográfica real (DEM)</small>
@@ -157,7 +161,7 @@
             <!-- Switch Edificios 3D (Extrusión) -->
             <div class="control-item highlight-3d" onclick="document.getElementById('chk-edificios-3d').click()">
                 <div class="item-info">
-                    <span class="badge-icon">🏢</span>
+                    <span class="badge-icon"><svg class="ui-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="2" width="16" height="20" rx="2" ry="2"/><line x1="9" y1="22" x2="9" y2="2"/><line x1="15" y1="22" x2="15" y2="2"/><line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="17" x2="20" y2="17"/></svg></span>
                     <div>
                         <span>Edificios 3D (Extrusión)</span>
                         <small>Extruidos por campo 'altura'</small>
@@ -202,14 +206,14 @@
             </div>
             <div class="camera-actions-row">
                 <button class="btn-cam-action" id="btn-cam-2d" title="Vista Cenital (90° Top-Down)">
-                    📐 Vista 2D
+                    <svg class="ui-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/><path d="M3 15h18"/><path d="M9 3v18"/><path d="M15 3v18"/></svg> Vista 2D
                 </button>
                 <button class="btn-cam-action" id="btn-cam-3d" title="Perspectiva Oblicua (58°)">
-                    🌐 Perspectiva 3D
+                    <svg class="ui-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg> Perspectiva 3D
                 </button>
             </div>
             <button class="btn-cam-action" id="btn-cam-fit" style="width: 100%; margin-bottom: 12px;" title="Ajustar zoom a toda la ruta">
-                🚶 Encuadrar Recorrido Completo
+                <svg class="ui-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><polyline points="21 15 21 21 15 21"/><polyline points="3 9 3 3 9 3"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg> Encuadrar Recorrido Completo
             </button>
 
             <!-- SECCIÓN 2: CONTROL DE CAPAS VECTORIALES -->
@@ -273,20 +277,22 @@
             </div>
             <div class="measure-selector-grid">
                 <button type="button" class="btn-measure" id="btn-measure-distance" title="Medir distancia lineal o ruta multipunto en metros y kilómetros">
-                    <span>📏</span> Distancia
+                    <svg class="ui-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.3 8.7 8.7 21.3c-1 1-2.6 1-3.6 0l-2.4-2.4c-1-1-1-2.6 0-3.6L15.3 2.7c1-1 2.6-1 3.6 0l2.4 2.4c1 1 1 2.6 0 3.6Z"/><path d="m7.5 10.5 2 2"/><path d="m10.5 7.5 2 2"/><path d="m13.5 4.5 2 2"/><path d="m4.5 13.5 2 2"/></svg> Distancia
                 </button>
                 <button type="button" class="btn-measure" id="btn-measure-area" title="Medir área poligonal y perímetro en m² y hectáreas">
-                    <span>📐</span> Área
+                    <svg class="ui-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3h4v4H3z"/><path d="M17 3h4v4h-4z"/><path d="M17 17h4v4h-4z"/><path d="M3 17h4v4H3z"/><path d="m5 7 0 10"/><path d="m7 5 10 0"/><path d="m19 7 0 10"/><path d="m7 19 10 0"/></svg> Área
                 </button>
                 <button type="button" class="btn-measure btn-measure-clear" id="btn-measure-clear" title="Limpiar geometrías medidas y restaurar cursor" disabled>
-                    <span>🗑️</span> Limpiar
+                    <svg class="ui-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg> Limpiar
                 </button>
             </div>
 
             <!-- Tarjeta de Resultados de Medición en el Panel -->
             <div class="measure-result-card hidden" id="panel-measure-card">
                 <div class="measure-card-header">
-                    <span class="measure-card-badge" id="panel-measure-badge">📏 Distancia</span>
+                    <span class="measure-card-badge" id="panel-measure-badge">
+                        <svg class="ui-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.3 8.7 8.7 21.3c-1 1-2.6 1-3.6 0l-2.4-2.4c-1-1-1-2.6 0-3.6L15.3 2.7c1-1 2.6-1 3.6 0l2.4 2.4c1 1 1 2.6 0 3.6Z"/><path d="m7.5 10.5 2 2"/><path d="m10.5 7.5 2 2"/><path d="m13.5 4.5 2 2"/><path d="m4.5 13.5 2 2"/></svg> Distancia
+                    </span>
                     <span class="measure-card-status" id="panel-measure-status">En curso</span>
                 </div>
                 <div class="measure-card-val" id="panel-measure-primary">0.0 m</div>
@@ -316,7 +322,7 @@
 
             <!-- Botón para mostrar todos los nombres flotantes -->
             <button class="btn-toggle-names" id="btn-toggle-names">
-                <span>🏷️</span> Mostrar Nombres de Hitos (Off)
+                <svg class="ui-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg> Mostrar Nombres de Hitos (Off)
             </button>
 
             <!-- SECCIÓN 4: ANIMACIÓN DE RECORRIDO E ISOVISTAS -->
@@ -327,7 +333,7 @@
 
             <!-- Botón para alternar visibilidad de la barra de animación -->
             <button class="btn-toggle-anim-bar" id="btn-toggle-anim-player" title="Mostrar u ocultar la barra flotante de animación">
-                <span>🎬</span> Activar Modo Animación
+                <svg class="ui-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg> Activar Modo Animación
             </button>
 
             <!-- SECCIÓN 5: HERRAMIENTAS Y EXPORTACIÓN -->
@@ -337,10 +343,10 @@
             </div>
             <div class="export-actions-grid">
                 <button type="button" class="btn-util-export" id="btn-export-screenshot" title="Exportar la vista 3D actual como imagen PNG de alta resolución con membrete institucional">
-                    <span>📸</span> Capturar Vista HD (PNG)
+                    <svg class="ui-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg> Capturar Vista HD (PNG)
                 </button>
                 <button type="button" class="btn-util-export" id="btn-toggle-profile-panel" title="Desplegar gráfica de perfil de apertura visual a lo largo del recorrido">
-                    <span>📊</span> Perfil de Isovistas
+                    <svg class="ui-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg> Perfil de Isovistas
                 </button>
             </div>
 
@@ -349,7 +355,7 @@
 
     <!-- 6. Botón Flotante para Desplegar Animación (Visible cuando el reproductor está minimizado) -->
     <button type="button" id="btn-anim-pill-launcher" class="anim-pill-launcher" title="Abrir controles de animación y explorar isovistas dinámicas">
-        <span class="pill-icon">🎬</span>
+        <span class="pill-icon"><svg class="ui-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg></span>
         <span class="pill-text">Animación del Recorrido</span>
         <span class="pill-badge">Isovistas</span>
     </button>
@@ -360,27 +366,27 @@
         <!-- Fila 1: Telemetría y Métricas en Tiempo Real -->
         <div class="anim-telemetry-row">
             <div class="anim-telemetry-chip chip-dist">
-                <span class="chip-icon">🚶</span>
+                <span class="chip-icon"><svg class="ui-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></span>
                 <span class="chip-val" id="anim-dist-val">0.00 km</span>
                 <span class="chip-sub" id="anim-pct-val">(0%)</span>
             </div>
             <div class="anim-telemetry-chip chip-iso">
-                <span class="chip-icon">👁️</span>
+                <span class="chip-icon"><svg class="ui-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></span>
                 <span class="chip-label">Isovista:</span>
                 <span class="chip-val" id="anim-iso-val">19,503 m²</span>
             </div>
             <div class="anim-telemetry-chip chip-area">
-                <span class="chip-icon">🗺️</span>
+                <span class="chip-icon"><svg class="ui-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg></span>
                 <span class="chip-label">Acumulada:</span>
                 <span class="chip-val" id="anim-acum-val">1.95 ha</span>
             </div>
             <div class="anim-telemetry-chip chip-elev" id="anim-chip-elev" title="Altitud topográfica sobre el nivel del mar (DEM)">
-                <span class="chip-icon">⛰️</span>
+                <span class="chip-icon"><svg class="ui-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m8 3 4 8 5-5 5 15H2L8 3z"/></svg></span>
                 <span class="chip-label">Cota:</span>
                 <span class="chip-val" id="anim-elev-val">1,892.0 m</span>
             </div>
             <div class="anim-telemetry-chip chip-hito" id="anim-chip-hito">
-                <span class="chip-icon">📍</span>
+                <span class="chip-icon"><svg class="ui-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg></span>
                 <span class="chip-val" id="anim-hito-val">Fuente del Pípila (a 25 m)</span>
             </div>
             <button class="btn-anim-min" id="btn-anim-min" title="Minimizar barra de animación">−</button>
@@ -400,10 +406,10 @@
         <div class="anim-controls-row">
             <div class="anim-playback-group">
                 <button type="button" class="btn-anim-action btn-play" id="btn-anim-play" title="Reproducir animación">
-                    <span id="anim-play-icon">▶</span> <span id="anim-play-text">Iniciar Recorrido</span>
+                    <span id="anim-play-icon"><svg class="ui-icon" width="12" height="12" viewBox="0 0 24 24" fill="currentColor" stroke="none"><polygon points="6 4 20 12 6 20 6 4"/></svg></span> <span id="anim-play-text">Iniciar Recorrido</span>
                 </button>
                 <button type="button" class="btn-anim-action btn-stop" id="btn-anim-stop" title="Reiniciar al inicio">
-                    <span>⏹</span> Reiniciar
+                    <svg class="ui-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><polyline points="3 3 3 8 8 8"/></svg> Reiniciar
                 </button>
             </div>
 
@@ -417,12 +423,12 @@
 
             <!-- Botón Seguir con Cámara -->
             <button type="button" class="btn-cam-follow active" id="btn-anim-cam-follow" title="Acompañar con la cámara al observador mientras avanza">
-                <span>🎥</span> Seguir Cámara (On)
+                <svg class="ui-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m22 8-6 4 6 4V8Z"/><rect width="14" height="12" x="2" y="6" rx="2"/></svg> Seguir Cámara (On)
             </button>
 
             <!-- Botón Modo de Cámara 3D Detrás / 2D Cenital (Inicia en 2D por defecto) -->
             <button type="button" class="btn-cam-mode-toggle" id="btn-anim-cam-mode" title="Alternar entre Cámara Detrás 3D y Vista Cenital 2D">
-                <span id="anim-cam-mode-icon">📐</span> <span id="anim-cam-mode-text">Vista 2D (Cenital)</span>
+                <span id="anim-cam-mode-icon"><svg class="ui-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/><path d="M3 15h18"/><path d="M9 3v18"/><path d="M15 3v18"/></svg></span> <span id="anim-cam-mode-text">Vista 2D (Cenital)</span>
             </button>
         </div>
     </div>
@@ -431,7 +437,7 @@
     <div id="profile-chart-drawer" class="profile-chart-drawer collapsed">
         <div class="profile-drawer-header">
             <div class="profile-drawer-title">
-                <span class="profile-icon">📊</span>
+                <span class="profile-icon"><svg class="ui-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></span>
                 <div>
                     <h3>Diagnóstico Espacial: Isovistas y Relieve</h3>
                     <p>Cuenca visual (m²) y cota altitudinal (msnm) a lo largo de los 4.7 km</p>
@@ -440,9 +446,9 @@
 
             <!-- Selector de Vista de Gráficas: Ambas | Isovistas | Altitud -->
             <div class="profile-view-selector">
-                <button type="button" class="btn-profile-tab active" data-tab="both" id="tab-prof-both">📊 Ambas</button>
-                <button type="button" class="btn-profile-tab" data-tab="iso" id="tab-prof-iso">👁️ Isovistas</button>
-                <button type="button" class="btn-profile-tab" data-tab="elev" id="tab-prof-elev">⛰️ Altitud</button>
+                <button type="button" class="btn-profile-tab active" data-tab="both" id="tab-prof-both"><svg class="ui-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg> Ambas</button>
+                <button type="button" class="btn-profile-tab" data-tab="iso" id="tab-prof-iso"><svg class="ui-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg> Isovistas</button>
+                <button type="button" class="btn-profile-tab" data-tab="elev" id="tab-prof-elev"><svg class="ui-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m8 3 4 8 5-5 5 15H2L8 3z"/></svg> Altitud</button>
             </div>
 
             <button type="button" class="btn-close-profile" id="btn-close-profile" title="Cerrar perfiles de análisis">✕</button>
@@ -498,14 +504,14 @@
                 <button type="button" class="pt-close-btn" id="pt-close-btn" title="Cerrar detalle">✕</button>
             </div>
             <div class="pt-row-metrics">
-                <span class="pt-area" id="pt-area">👁️ 0 m²</span>
-                <span class="pt-elev" id="pt-elev">⛰️ 0 msnm</span>
+                <span class="pt-area" id="pt-area"><svg class="ui-icon" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg> 0 m²</span>
+                <span class="pt-elev" id="pt-elev"><svg class="ui-icon" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m8 3 4 8 5-5 5 15H2L8 3z"/></svg> 0 msnm</span>
             </div>
         </div>
 
         <div class="profile-chart-footer">
             <span>0 km (Fuente del Pípila • 1,892 m)</span>
-            <span class="profile-hint">💡 Haz clic sobre las gráficas para consultar apertura y altitud</span>
+            <span class="profile-hint"><svg class="ui-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg> Haz clic sobre las gráficas para consultar apertura y altitud</span>
             <span>4.7 km (Calzada Juárez • 1,901 m)</span>
         </div>
     </div>
