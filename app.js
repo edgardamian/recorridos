@@ -121,8 +121,10 @@ function initMap() {
         // Escuchar giros e inclinaciones manuales del mapa para mantener la orientación y UI en sincronía
         map.on("rotate", updateObserverArrowDirection);
         map.on("pitch", () => {
-            const isPitch3D = map.getPitch() > 20;
-            updateCamModeUI(isPitch3D);
+            if (!appState.animPlaying && !appState.animCameraFollow) {
+                const isPitch3D = map.getPitch() > 20;
+                updateCamModeUI(isPitch3D);
+            }
         });
 
         hideLoadingOverlay();
@@ -836,7 +838,18 @@ function setCameraView(mode) {
     if (!map) return;
     if (mode === "2d") {
         appState.animCameraMode = "2d";
-        map.easeTo({ pitch: 0, bearing: 0, duration: 800 });
+        let targetCenter = map.getCenter();
+        if (appState.animData && appState.animData.frames) {
+            const curFrame = appState.animData.frames[appState.animCurrentFrame] || appState.animData.frames[0];
+            targetCenter = curFrame.coords;
+        }
+        map.easeTo({
+            center: targetCenter,
+            pitch: 0,
+            bearing: 0,
+            offset: [0, 0],
+            duration: 800
+        });
         updateCamModeUI(false);
     } else if (mode === "3d") {
         appState.animCameraMode = "3d";
@@ -886,10 +899,6 @@ function toggleCameraMode(force3D) {
     }
 
     if (appState.animCameraMode === "3d") {
-        // Si los edificios 3D están apagados, activarlos para enriquecer la experiencia visual
-        if (!appState.buildings3DActive) {
-            toggleBuildings3D(true);
-        }
         setCameraView("3d");
     } else {
         setCameraView("2d");
@@ -915,6 +924,11 @@ function updateCamModeUI(is3D) {
             if (text) text.innerText = "Vista 2D (Cenital)";
         }
     }
+
+    const btnCam2D = document.getElementById("btn-cam-2d");
+    const btnCam3D = document.getElementById("btn-cam-3d");
+    if (btnCam2D) btnCam2D.classList.toggle("active", !is3D);
+    if (btnCam3D) btnCam3D.classList.toggle("active", is3D);
 }
 
 /**
@@ -1649,8 +1663,8 @@ function renderAnimationFrame(frameIndex, isUserScrubbing = false) {
     if (appState.animCameraFollow && map) {
         const curPitch = map.getPitch();
         const curZoom = map.getZoom();
-        // Modo 3D activo si está configurado en animCameraMode, si el mapa está inclinado o si hay capas 3D
-        const is3D = appState.animCameraMode === "3d" || curPitch > 15 || appState.buildings3DActive || appState.terrain3DActive;
+        // Modo 3D activo estrictamente según animCameraMode (evita que layers 3D bloqueen el modo 2D)
+        const is3D = appState.animCameraMode === "3d";
         const dur = isUserScrubbing ? 0 : Math.max(80, Math.round(150 / appState.animSpeed));
 
         if (is3D) {
@@ -1658,7 +1672,7 @@ function renderAnimationFrame(frameIndex, isUserScrubbing = false) {
             // MODO 3D: CÁMARA DETRÁS DEL OBSERVADOR (CHASE / PERSPECTIVA PEATONAL)
             // ==================================================================
             // 1. Inclinación 3D (pitch 58° ideal para cañón urbano y cielo)
-            const targetPitch = curPitch < 35 ? 58 : curPitch;
+            const targetPitch = 58;
             // 2. Zoom adecuado a vista de calle
             const targetZoom = curZoom < 15.2 ? 16.2 : curZoom;
             // 3. Orientación de cámara: rumbo de avance suavizado (cámara posicionada detrás)
@@ -1687,18 +1701,22 @@ function renderAnimationFrame(frameIndex, isUserScrubbing = false) {
             }
         } else {
             // ==================================================================
-            // MODO 2D: VISTA CENITAL ESTÁNDAR (NORTE ARRIBA)
+            // MODO 2D: VISTA CENITAL ESTÁNDAR (NORTE ARRIBA, PITCH 0, BEARING 0)
             // ==================================================================
-            const targetZoom = curZoom < 15 ? 15.6 : curZoom;
+            const targetZoom = curZoom < 14.8 ? 15.6 : curZoom;
             if (isUserScrubbing) {
                 map.jumpTo({
                     center: frame.coords,
+                    pitch: 0,
+                    bearing: 0,
                     zoom: targetZoom,
                     offset: [0, 0]
                 });
             } else {
                 map.easeTo({
                     center: frame.coords,
+                    pitch: 0,
+                    bearing: 0,
                     zoom: targetZoom,
                     offset: [0, 0],
                     duration: dur,
