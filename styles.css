@@ -1727,3 +1727,284 @@ body.measuring-active .maplibregl-canvas {
     }
 }
 
+/* --------------------------------------------------------------------------
+   20. PERFIL DE APERTURA VISUAL, EXPORTACIÓN HD Y LUZ SOLAR 3D
+   -------------------------------------------------------------------------- */
+
+/* Botón de captura rápida en el pill superior */
+.btn-pill-snapshot {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 6px;
+    padding: 2px 7px;
+    font-size: 13px;
+    cursor: pointer;
+    margin-left: 6px;
+    transition: var(--transition-fast);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.btn-pill-snapshot:hover {
+    background: rgba(56, 189, 248, 0.3);
+    border-color: var(--color-cyan);
+    transform: scale(1.1);
+}
+
+/* Grid de utilidades y exportación en el panel */
+.export-actions-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+.btn-util-export {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    background: rgba(30, 41, 59, 0.85);
+    border: 1px solid rgba(148, 163, 184, 0.22);
+    color: #f1f5f9;
+    padding: 8px 10px;
+    border-radius: 8px;
+    font-size: 11.5px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: var(--transition-fast);
+    text-align: center;
+}
+
+.btn-util-export:hover {
+    background: rgba(56, 189, 248, 0.18);
+    border-color: var(--color-cyan);
+    color: var(--color-cyan);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(56, 189, 248, 0.25);
+}
+
+/* Botones de sol / iluminación 3D */
+#row-sun-lighting .btn-exag.active {
+    background: linear-gradient(135deg, #f59e0b, #d97706);
+    border-color: #fde68a;
+    color: #ffffff;
+    box-shadow: 0 0 10px rgba(245, 158, 11, 0.45);
+}
+
+/* Drawer Inferior del Perfil de Apertura Visual */
+.profile-chart-drawer {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: min(920px, calc(100vw - 380px));
+    background: rgba(15, 23, 42, 0.94);
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+    border: 1px solid rgba(56, 189, 248, 0.35);
+    border-radius: 16px;
+    padding: 12px 18px 10px 18px;
+    box-shadow: 0 20px 48px rgba(0, 0, 0, 0.75), 0 0 24px rgba(56, 189, 248, 0.15);
+    z-index: 1200;
+    transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s ease;
+}
+
+.profile-chart-drawer.collapsed {
+    transform: translate(-50%, 120%);
+    opacity: 0;
+    pointer-events: none;
+}
+
+.profile-drawer-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 8px;
+}
+
+.profile-drawer-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.profile-drawer-title .profile-icon {
+    font-size: 20px;
+}
+
+.profile-drawer-title h3 {
+    margin: 0;
+    font-size: 13.5px;
+    font-weight: 700;
+    color: #f8fafc;
+    letter-spacing: -0.2px;
+}
+
+.profile-drawer-title p {
+    margin: 2px 0 0 0;
+    font-size: 11px;
+    color: #94a3b8;
+}
+
+.profile-drawer-badges {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.profile-stat-badge {
+    background: rgba(30, 41, 59, 0.85);
+    border: 1px solid rgba(148, 163, 184, 0.2);
+    border-radius: 6px;
+    padding: 3px 8px;
+    font-size: 11px;
+    color: #e2e8f0;
+}
+
+.profile-stat-badge strong {
+    color: var(--color-cyan);
+    margin-right: 3px;
+}
+
+.btn-close-profile {
+    background: transparent;
+    border: none;
+    color: #94a3b8;
+    font-size: 16px;
+    cursor: pointer;
+    padding: 4px;
+    line-height: 1;
+    border-radius: 4px;
+    transition: var(--transition-fast);
+}
+
+.btn-close-profile:hover {
+    color: #ffffff;
+    background: rgba(255, 255, 255, 0.1);
+}
+
+/* Contenedor interactivo del gráfico SVG */
+.profile-chart-container {
+    position: relative;
+    width: 100%;
+    height: 100px;
+    background: rgba(10, 15, 29, 0.6);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 10px;
+    overflow: hidden;
+    cursor: crosshair;
+}
+
+.profile-svg {
+    width: 100%;
+    height: 100%;
+    display: block;
+}
+
+/* Aguja / Marcador de posición actual sincronizado */
+.profile-needle {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background: #38bdf8;
+    box-shadow: 0 0 8px #38bdf8;
+    pointer-events: none;
+    transition: left 0.06s linear;
+    left: 0%;
+}
+
+.profile-needle-dot {
+    position: absolute;
+    top: -3px;
+    left: -4px;
+    width: 10px;
+    height: 10px;
+    background: #ffffff;
+    border: 2px solid #38bdf8;
+    border-radius: 50%;
+    box-shadow: 0 0 6px #38bdf8;
+}
+
+/* Tooltip interactivo flotante en el gráfico */
+.profile-tooltip {
+    position: absolute;
+    top: 8px;
+    background: rgba(15, 23, 42, 0.95);
+    border: 1px solid #38bdf8;
+    border-radius: 7px;
+    padding: 4px 9px;
+    font-size: 10.5px;
+    color: #f8fafc;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.6);
+    pointer-events: none;
+    white-space: nowrap;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    z-index: 10;
+    transform: translateX(-50%);
+    transition: opacity 0.15s ease;
+}
+
+.profile-tooltip.hidden {
+    opacity: 0;
+}
+
+.profile-tooltip .pt-dist {
+    font-weight: 700;
+    color: #38bdf8;
+}
+
+.profile-tooltip .pt-area {
+    font-weight: 700;
+    color: #fbbf24;
+}
+
+.profile-tooltip .pt-hito {
+    color: #94a3b8;
+    font-size: 9.5px;
+}
+
+.profile-chart-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 6px;
+    font-size: 10px;
+    color: #64748b;
+}
+
+.profile-chart-footer .profile-hint {
+    color: #94a3b8;
+    font-style: italic;
+}
+
+/* Toast flotante de notificaciones */
+.toast-msg {
+    position: fixed;
+    bottom: 30px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(15, 23, 42, 0.96);
+    border: 1px solid #38bdf8;
+    color: #f8fafc;
+    padding: 8px 18px;
+    border-radius: 24px;
+    font-size: 12.5px;
+    font-weight: 600;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.7), 0 0 16px rgba(56, 189, 248, 0.35);
+    z-index: 99999;
+    pointer-events: none;
+    transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.toast-msg.hidden {
+    opacity: 0;
+    transform: translate(-50%, 15px);
+}
+
+

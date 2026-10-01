@@ -34,6 +34,7 @@
     <header class="top-header-pill">
         <h1>Corredor Norte-Sur Morelia</h1>
         <span class="pill-badge">Isovistas 2D / 3D</span>
+        <button type="button" class="btn-pill-snapshot" id="btn-header-snapshot" title="Captura rápida en PNG">📸</button>
     </header>
 
     <!-- 4. HUD Flotante de Medición (Visible en tiempo real al medir) -->
@@ -122,6 +123,21 @@
                 </button>
             </div>
 
+            <!-- Switch Etiquetas de Calles en Satélite -->
+            <div class="control-item hidden" id="row-satellite-labels" onclick="document.getElementById('chk-satellite-labels').click()">
+                <div class="item-info">
+                    <span class="badge-icon">🏷️</span>
+                    <div>
+                        <span>Vialidades en Satélite</span>
+                        <small>Capa híbrida de nombres de calles</small>
+                    </div>
+                </div>
+                <label class="switch" onclick="event.stopPropagation()">
+                    <input type="checkbox" id="chk-satellite-labels" checked>
+                    <span class="slider"></span>
+                </label>
+            </div>
+
             <!-- SECCIÓN 1: MODOS Y VISUALIZACIÓN 3D -->
             <div class="section-title">
                 <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 10l-2 1m0 0l-2-1m2 1v2.5M20 7l-2 1m2-1l-2-1m2 1v2.5M14 4l-2-1-2 1M4 7l2-1M4 7l2 1M4 7v2.5M12 21l-2-1m2 1l2-1m-2 1v-2.5M6 18l-2-1v-2.5M18 18l2-1v-2.5"></path></svg>
@@ -175,6 +191,16 @@
                     <button type="button" class="btn-exag active" id="btn-bld-1x" data-type="buildings" data-val="1.0" title="Altura real de edificios (1x)">Real (1x)</button>
                     <button type="button" class="btn-exag" id="btn-bld-2x" data-type="buildings" data-val="2.0" title="Exageración de altura al doble (2x)">2x</button>
                     <button type="button" class="btn-exag" id="btn-bld-3x" data-type="buildings" data-val="3.0" title="Exageración de altura al triple (3x)">3x</button>
+                </div>
+            </div>
+
+            <!-- Iluminación Solar 3D -->
+            <div class="exag-btn-row" id="row-sun-lighting">
+                <span class="exag-label">Sol 3D:</span>
+                <div class="exag-btn-group">
+                    <button type="button" class="btn-exag active" id="btn-sun-noon" data-sun="noon" title="Sol cenital de mediodía">☀️ Cenit</button>
+                    <button type="button" class="btn-exag" id="btn-sun-morning" data-sun="morning" title="Luz matutina rasante desde el Este">🌅 Mañana</button>
+                    <button type="button" class="btn-exag" id="btn-sun-sunset" data-sun="sunset" title="Luz dorada de atardecer desde el Oeste">🌇 Ocaso</button>
                 </div>
             </div>
 
@@ -329,6 +355,20 @@
                 <span>🎬</span> Activar Modo Animación
             </button>
 
+            <!-- SECCIÓN 5: HERRAMIENTAS Y EXPORTACIÓN -->
+            <div class="section-title">
+                <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
+                Utilidades y Exportación
+            </div>
+            <div class="export-actions-grid">
+                <button type="button" class="btn-util-export" id="btn-export-screenshot" title="Exportar la vista 3D actual como imagen PNG de alta resolución con membrete institucional">
+                    <span>📸</span> Capturar Vista HD (PNG)
+                </button>
+                <button type="button" class="btn-util-export" id="btn-toggle-profile-panel" title="Desplegar gráfica de perfil de apertura visual a lo largo del recorrido">
+                    <span>📊</span> Perfil de Isovistas
+                </button>
+            </div>
+
         </div>
     </aside>
 
@@ -407,7 +447,45 @@
         </div>
     </div>
 
-    <!-- 7. Datos Geoespaciales Estáticos (Permite abrir el mapa con DOBLE CLIC en index.html sin necesidad de servidor) -->
+    <!-- 8. Perfil Gráfico de Apertura Visual e Isovistas (Drawer Inferior Flotante) -->
+    <div id="profile-chart-drawer" class="profile-chart-drawer collapsed">
+        <div class="profile-drawer-header">
+            <div class="profile-drawer-title">
+                <span class="profile-icon">📊</span>
+                <div>
+                    <h3>Perfil de Apertura Visual del Corredor</h3>
+                    <p>Cuenca de visibilidad (m²) en cada punto de los 4.7 km Norte-Sur</p>
+                </div>
+            </div>
+            <div class="profile-drawer-badges">
+                <span class="profile-stat-badge"><strong>Máx:</strong> <span id="profile-stat-max">-- m²</span></span>
+                <span class="profile-stat-badge"><strong>Prom:</strong> <span id="profile-stat-avg">-- m²</span></span>
+                <span class="profile-stat-badge"><strong>Mín:</strong> <span id="profile-stat-min">-- m²</span></span>
+            </div>
+            <button type="button" class="btn-close-profile" id="btn-close-profile" title="Cerrar perfil de apertura">✕</button>
+        </div>
+        <div class="profile-chart-container" id="profile-chart-container">
+            <svg id="profile-svg" class="profile-svg" preserveAspectRatio="none" viewBox="0 0 1000 110"></svg>
+            <div id="profile-needle" class="profile-needle">
+                <div class="profile-needle-dot"></div>
+            </div>
+            <div id="profile-tooltip" class="profile-tooltip hidden">
+                <span class="pt-dist" id="pt-dist">0.0 km</span>
+                <span class="pt-area" id="pt-area">0 m²</span>
+                <span class="pt-hito" id="pt-hito">Catedral</span>
+            </div>
+        </div>
+        <div class="profile-chart-footer">
+            <span>0 km (Pípila)</span>
+            <span class="profile-hint">💡 Haz clic o arrastra sobre la gráfica para saltar en el mapa</span>
+            <span>4.7 km (Calzada Juárez)</span>
+        </div>
+    </div>
+
+    <!-- 9. Toast Notification Flotante -->
+    <div id="toast-msg" class="toast-msg hidden"></div>
+
+    <!-- 10. Datos Geoespaciales Estáticos (Permite abrir el mapa con DOBLE CLIC en index.html sin necesidad de servidor) -->
     <script src="datos/metadata.js"></script>
     <script src="datos/ruta.js"></script>
     <script src="datos/referencias.js"></script>

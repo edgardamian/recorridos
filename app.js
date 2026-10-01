@@ -89,6 +89,7 @@ function initMap() {
         bearing: 0,     // Orientación norte
         maxPitch: 70,   // Límite de inclinación seguro que evita recorte de frustum y desaparición de capas
         maxZoom: 21,    // Límite superior de zoom seguro para sobre-escalado nítido
+        preserveDrawingBuffer: true, // Permite capturas de pantalla nítidas HD vía toDataURL
         attributionControl: false // Personalizado si se desea
     });
 
@@ -111,6 +112,7 @@ function initMap() {
         setupAnimation();
         setupUIEventListeners();
         setupMeasureTools();
+        setupAdvancedFeatures();
 
         // Escuchar giros e inclinaciones manuales del mapa para mantener la orientación y UI en sincronía
         map.on("rotate", updateObserverArrowDirection);
@@ -222,6 +224,20 @@ function setupLayers() {
         type: "raster",
         source: "satellite_src",
         layout: { visibility: "none" } // Inicia apagada (Dark Matter por defecto)
+    });
+
+    // Capa de nombres de calles y vialidades (híbrida sobre satélite)
+    map.addSource("satellite-labels-src", {
+        type: "raster",
+        tiles: ["https://basemaps.cartocdn.com/rastertiles/dark_only_labels/{z}/{x}/{y}.png"],
+        tileSize: 256
+    });
+
+    map.addLayer({
+        id: "satellite-labels-layer",
+        type: "raster",
+        source: "satellite-labels-src",
+        layout: { visibility: "none" }
     });
 
     // -------------------------------------------------------------------------
@@ -650,12 +666,28 @@ function setBasemap(mode) {
                 map.setLayoutProperty(id, "visibility", "none");
             }
         });
+
+        // Mostrar control de vialidades y encender capa si el switch está marcado
+        const rowSatLabels = document.getElementById("row-satellite-labels");
+        if (rowSatLabels) rowSatLabels.classList.remove("hidden");
+        const chkSatLabels = document.getElementById("chk-satellite-labels");
+        const satLabelsVis = (!chkSatLabels || chkSatLabels.checked) ? "visible" : "none";
+        if (map.getLayer("satellite-labels-layer")) {
+            map.setLayoutProperty("satellite-labels-layer", "visibility", satLabelsVis);
+        }
+
         if (btnDark) btnDark.classList.remove("active");
         if (btnSat) btnSat.classList.add("active");
     } else {
         if (map.getLayer("satellite-layer")) {
             map.setLayoutProperty("satellite-layer", "visibility", "none");
         }
+        if (map.getLayer("satellite-labels-layer")) {
+            map.setLayoutProperty("satellite-labels-layer", "visibility", "none");
+        }
+        const rowSatLabels = document.getElementById("row-satellite-labels");
+        if (rowSatLabels) rowSatLabels.classList.add("hidden");
+
         // Restaurar visibilidad de las capas base Carto Dark
         cartoBaseLayerIds.forEach(id => {
             if (map.getLayer(id)) {
@@ -1674,6 +1706,9 @@ function renderAnimationFrame(frameIndex, isUserScrubbing = false) {
 
     // 5. Actualizar telemetría HUD y Scrubber Slider
     updateAnimationHUD(frame, total);
+
+    // 6. Sincronizar la aguja del perfil de apertura visual
+    updateProfileNeedle(frameIndex);
 }
 
 /**
@@ -2646,7 +2681,394 @@ function hideLoadingOverlay() {
 
 
 // ==============================================================================
-// 12. PUNTO DE ENTRADA
+// 13. MEJORAS AVANZADAS: PERFIL VISUAL, CAPTURA HD Y LUZ SOLAR 3D
+// ==============================================================================
+
+/**
+ * Inicializa las mejoras avanzadas: exportación de capturas, perfil de isovistas y luz solar.
+ */
+function setupAdvancedFeatures() {
+    // 1. Botones de captura de pantalla HD
+    const btnSnapshotHdr = document.getElementById("btn-header-snapshot");
+    if (btnSnapshotHdr) btnSnapshotHdr.addEventListener("click", exportMapScreenshot);
+
+    const btnSnapshotUtil = document.getElementById("btn-export-screenshot");
+    if (btnSnapshotUtil) btnSnapshotUtil.addEventListener("click", exportMapScreenshot);
+
+    // 2. Control del Drawer del Perfil de Isovistas
+    const btnToggleProfPanel = document.getElementById("btn-toggle-profile-panel");
+    if (btnToggleProfPanel) btnToggleProfPanel.addEventListener("click", () => toggleProfileDrawer());
+
+    const btnCloseProf = document.getElementById("btn-close-profile");
+    if (btnCloseProf) btnCloseProf.addEventListener("click", () => toggleProfileDrawer(false));
+
+    // 3. Botones de simulación de luz solar 3D
+    document.querySelectorAll("#row-sun-lighting .btn-exag").forEach(btn => {
+        btn.addEventListener("click", () => {
+            const mode = btn.dataset.sun;
+            setSunLighting(mode);
+        });
+    });
+
+    // 4. Switch de etiquetas viales híbridas sobre satélite
+    const chkSatLabels = document.getElementById("chk-satellite-labels");
+    if (chkSatLabels) {
+        chkSatLabels.addEventListener("change", (e) => {
+            if (map && map.getLayer("satellite-labels-layer")) {
+                map.setLayoutProperty("satellite-labels-layer", "visibility", e.target.checked ? "visible" : "none");
+            }
+        });
+    }
+
+    // 5. Configurar el gráfico de perfil una vez cargados los datos de animación
+    if (appState.animData && appState.animData.frames) {
+        buildVisualOpennessChart();
+    }
+}
+
+/**
+ * Alterna la visibilidad del Drawer inferior del perfil de apertura visual.
+ * @param {boolean} [forceState]
+ */
+function toggleProfileDrawer(forceState) {
+    const drawer = document.getElementById("profile-chart-drawer");
+    if (!drawer) return;
+
+    const isCollapsed = drawer.classList.contains("collapsed");
+    const open = forceState !== undefined ? forceState : isCollapsed;
+
+    if (open) {
+        drawer.classList.remove("collapsed");
+        buildVisualOpennessChart();
+        updateProfileNeedle(appState.animCurrentFrame);
+    } else {
+        drawer.classList.add("collapsed");
+    }
+}
+
+/**
+ * Construye el gráfico SVG del perfil de apertura visual (m² de isovistas) a lo largo del recorrido.
+ */
+function buildVisualOpennessChart() {
+    if (!appState.animData || !appState.animData.frames) return;
+    const frames = appState.animData.frames;
+    const total = frames.length;
+    if (total === 0) return;
+
+    // Calcular estadísticas
+    let maxArea = 0;
+    let minArea = Infinity;
+    let sumArea = 0;
+
+    frames.forEach(f => {
+        if (f.area_m2 > maxArea) maxArea = f.area_m2;
+        if (f.area_m2 < minArea) minArea = f.area_m2;
+        sumArea += f.area_m2;
+    });
+    const avgArea = Math.round(sumArea / total);
+
+    // Actualizar badges de estadísticas
+    const elMax = document.getElementById("profile-stat-max");
+    const elAvg = document.getElementById("profile-stat-avg");
+    const elMin = document.getElementById("profile-stat-min");
+    if (elMax) elMax.innerText = `${maxArea.toLocaleString()} m²`;
+    if (elAvg) elAvg.innerText = `${avgArea.toLocaleString()} m²`;
+    if (elMin) elMin.innerText = `${minArea.toLocaleString()} m²`;
+
+    // Dimensiones del SVG
+    const svgW = 1000;
+    const svgH = 110;
+    const padTop = 16;
+    const padBottom = 8;
+    const chartH = svgH - padTop - padBottom;
+
+    // Generar puntos de la curva
+    const points = frames.map((f, i) => {
+        const x = Number(((i / (total - 1)) * svgW).toFixed(1));
+        const norm = maxArea > 0 ? f.area_m2 / maxArea : 0;
+        const y = Number((padTop + (1 - norm) * chartH).toFixed(1));
+        return { x, y, frame: f, index: i };
+    });
+
+    let pathD = `M ${points[0].x},${points[0].y}`;
+    for (let i = 1; i < points.length; i++) {
+        pathD += ` L ${points[i].x},${points[i].y}`;
+    }
+    const areaD = `${pathD} L ${svgW},${svgH} L 0,${svgH} Z`;
+
+    // Hitos destacados sobre la curva
+    let landmarkCircles = "";
+    points.forEach(p => {
+        if (p.frame.hito && p.frame.hito.dist_m < 35) {
+            landmarkCircles += `
+                <circle cx="${p.x}" cy="${p.y}" r="3.5" fill="#fbbf24" stroke="#0f172a" stroke-width="1.5">
+                    <title>${p.frame.hito.nombre} (${p.frame.area_m2.toLocaleString()} m²)</title>
+                </circle>
+            `;
+        }
+    });
+
+    const svg = document.getElementById("profile-svg");
+    if (svg) {
+        svg.innerHTML = `
+            <defs>
+                <linearGradient id="profile-area-grad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stop-color="#38bdf8" stop-opacity="0.45" />
+                    <stop offset="50%" stop-color="#0284c7" stop-opacity="0.20" />
+                    <stop offset="100%" stop-color="#0f172a" stop-opacity="0.0" />
+                </linearGradient>
+                <linearGradient id="profile-stroke-grad" x1="0" y1="0" x2="1" y2="0">
+                    <stop offset="0%" stop-color="#38bdf8" />
+                    <stop offset="50%" stop-color="#67e8f9" />
+                    <stop offset="100%" stop-color="#fbbf24" />
+                </linearGradient>
+            </defs>
+            <!-- Área rellena con degradado -->
+            <path d="${areaD}" fill="url(#profile-area-grad)" />
+            <!-- Línea de trazo brillante -->
+            <path d="${pathD}" fill="none" stroke="url(#profile-stroke-grad)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" />
+            <!-- Hitos urbanos -->
+            ${landmarkCircles}
+        `;
+    }
+
+    // Interacción táctil / ratón sobre el gráfico
+    setupProfileChartInteractivity(points, total);
+}
+
+/**
+ * Configura el arrastre y salto interactivo en el gráfico de perfil.
+ */
+function setupProfileChartInteractivity(points, total) {
+    const container = document.getElementById("profile-chart-container");
+    const tooltip = document.getElementById("profile-tooltip");
+    const ptDist = document.getElementById("pt-dist");
+    const ptArea = document.getElementById("pt-area");
+    const ptHito = document.getElementById("pt-hito");
+
+    if (!container || container._hasListener) return;
+    container._hasListener = true;
+
+    function handleChartPointer(e, jumpMap = false) {
+        const rect = container.getBoundingClientRect();
+        const clientX = e.clientX !== undefined ? e.clientX : (e.touches ? e.touches[0].clientX : rect.left);
+        const relX = Math.max(0, Math.min(rect.width, clientX - rect.left));
+        const fraction = relX / rect.width;
+        const targetIndex = Math.min(total - 1, Math.max(0, Math.round(fraction * (total - 1))));
+        const p = points[targetIndex];
+
+        // Mover tooltip
+        if (tooltip) {
+            tooltip.classList.remove("hidden");
+            tooltip.style.left = `${relX}px`;
+            if (ptDist) ptDist.innerText = `${(p.frame.dist_m / 1000).toFixed(2)} km`;
+            if (ptArea) ptArea.innerText = `👁️ ${p.frame.area_m2.toLocaleString()} m²`;
+            if (ptHito) {
+                ptHito.innerText = p.frame.hito ? `📍 ${p.frame.hito.nombre}` : "";
+            }
+        }
+
+        // Si se hizo clic o arrastre intencional, saltar el mapa y la animación
+        if (jumpMap) {
+            if (appState.animPlaying) pauseAnimation();
+            renderAnimationFrame(targetIndex, false);
+        }
+    }
+
+    let isScrubbing = false;
+
+    container.addEventListener("mousedown", (e) => {
+        isScrubbing = true;
+        handleChartPointer(e, true);
+    });
+
+    window.addEventListener("mousemove", (e) => {
+        if (isScrubbing) {
+            handleChartPointer(e, true);
+        }
+    });
+
+    window.addEventListener("mouseup", () => {
+        isScrubbing = false;
+    });
+
+    container.addEventListener("mousemove", (e) => {
+        if (!isScrubbing) {
+            handleChartPointer(e, false);
+        }
+    });
+
+    container.addEventListener("mouseleave", () => {
+        if (!isScrubbing && tooltip) {
+            tooltip.classList.add("hidden");
+        }
+    });
+
+    // Soporte táctil
+    container.addEventListener("touchstart", (e) => {
+        isScrubbing = true;
+        handleChartPointer(e, true);
+    }, { passive: true });
+
+    container.addEventListener("touchmove", (e) => {
+        if (isScrubbing) handleChartPointer(e, true);
+    }, { passive: true });
+
+    container.addEventListener("touchend", () => {
+        isScrubbing = false;
+        if (tooltip) tooltip.classList.add("hidden");
+    });
+}
+
+/**
+ * Sincroniza la aguja indicadora de la posición actual del observador sobre el gráfico.
+ * @param {number} frameIndex
+ */
+function updateProfileNeedle(frameIndex) {
+    if (!appState.animData || !appState.animData.total_frames) return;
+    const needle = document.getElementById("profile-needle");
+    if (!needle) return;
+    const pct = (frameIndex / (appState.animData.total_frames - 1)) * 100;
+    needle.style.left = `${pct.toFixed(2)}%`;
+}
+
+/**
+ * Aplica la simulación de luz solar y sombras 3D (Cenit, Mañana, Ocaso).
+ * @param {'noon' | 'morning' | 'sunset'} mode
+ */
+function setSunLighting(mode) {
+    if (!map) return;
+
+    // Actualizar botones UI
+    document.querySelectorAll("#row-sun-lighting .btn-exag").forEach(btn => {
+        btn.classList.toggle("active", btn.dataset.sun === mode);
+    });
+
+    let pos = [1.5, 180, 75]; // Cenital
+    let color = "#ffffff";
+    let intensity = 0.55;
+
+    if (mode === "morning") {
+        pos = [1.5, 105, 32];
+        color = "#fed7aa"; // Tono dorado matutino
+        intensity = 0.70;
+    } else if (mode === "sunset") {
+        pos = [1.5, 260, 22];
+        color = "#fdba74"; // Tono cálido atardecer
+        intensity = 0.75;
+    } else {
+        // noon
+        pos = [1.5, 180, 75];
+        color = "#f8fafc";
+        intensity = 0.55;
+    }
+
+    try {
+        map.setLight({
+            anchor: "map",
+            position: pos,
+            color: color,
+            intensity: intensity
+        });
+        showToast(`☀️ Iluminación 3D ajustada: ${mode === "morning" ? "Mañana (Este)" : mode === "sunset" ? "Ocaso (Oeste)" : "Mediodía (Cenit)"}`);
+    } catch (e) {
+        console.warn("[Luz Solar 3D] Error al aplicar luz:", e);
+    }
+}
+
+/**
+ * Exporta la vista actual 3D del mapa como imagen PNG en alta resolución con membrete IMPLAN.
+ */
+async function exportMapScreenshot() {
+    if (!map) return;
+
+    try {
+        const mapCanvas = map.getCanvas();
+        const width = mapCanvas.width;
+        const height = mapCanvas.height;
+
+        const outCanvas = document.createElement("canvas");
+        outCanvas.width = width;
+        outCanvas.height = height;
+        const ctx = outCanvas.getContext("2d");
+
+        // 1. Dibujar el lienzo WebGL del mapa
+        ctx.drawImage(mapCanvas, 0, 0, width, height);
+
+        // 2. Componer tarjeta de membrete institucional en la esquina inferior izquierda
+        const pad = Math.round(width * 0.025);
+        const cardW = Math.min(420, Math.round(width * 0.38));
+        const cardH = 74;
+        const cardX = pad;
+        const cardY = height - pad - cardH;
+
+        // Fondo oscuro glassmorphic
+        ctx.fillStyle = "rgba(15, 23, 42, 0.88)";
+        ctx.strokeStyle = "rgba(56, 189, 248, 0.55)";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        if (ctx.roundRect) {
+            ctx.roundRect(cardX, cardY, cardW, cardH, 12);
+        } else {
+            ctx.rect(cardX, cardY, cardW, cardH);
+        }
+        ctx.fill();
+        ctx.stroke();
+
+        // Tipografía y textos institucionales
+        ctx.fillStyle = "#38bdf8";
+        ctx.font = "bold 13px system-ui, -apple-system, sans-serif";
+        ctx.fillText("IMPLAN MORELIA • CORREDOR NORTE-SUR", cardX + 16, cardY + 24);
+
+        ctx.fillStyle = "#f8fafc";
+        ctx.font = "600 15px system-ui, -apple-system, sans-serif";
+        const is3D = map.getPitch() > 15 || appState.buildings3DActive || appState.terrain3DActive;
+        const modeText = is3D ? "Análisis de Isovistas y Relieve 3D" : "Vista Cenital 2D • Isovistas Urbanas";
+        ctx.fillText(modeText, cardX + 16, cardY + 45);
+
+        ctx.fillStyle = "#94a3b8";
+        ctx.font = "11px system-ui, -apple-system, sans-serif";
+        const dateStr = new Date().toLocaleDateString("es-MX", { year: "numeric", month: "short", day: "numeric" });
+        const camStr = `Zoom: ${map.getZoom().toFixed(1)} • Pitch: ${map.getPitch().toFixed(0)}° • Rumbo: ${map.getBearing().toFixed(0)}°`;
+        ctx.fillText(`${dateStr} • ${camStr}`, cardX + 16, cardY + 63);
+
+        // 3. Descargar imagen PNG
+        const dataUrl = outCanvas.toDataURL("image/png");
+        const link = document.createElement("a");
+        const dateNow = new Date();
+        const stamp = `${dateNow.getFullYear()}${String(dateNow.getMonth() + 1).padStart(2, '0')}${String(dateNow.getDate()).padStart(2, '0')}_${String(dateNow.getHours()).padStart(2, '0')}${String(dateNow.getMinutes()).padStart(2, '0')}`;
+        link.download = `IMPLAN_Isovistas_Morelia_${stamp}.png`;
+        link.href = dataUrl;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+
+        showToast("📸 Captura HD descargada con membrete oficial");
+    } catch (err) {
+        console.error("Error al exportar captura:", err);
+        showToast("⚠️ No se pudo generar la captura");
+    }
+}
+
+/**
+ * Muestra una notificación toast temporal y elegante en la pantalla.
+ * @param {string} msg
+ */
+let toastTimeout = null;
+function showToast(msg) {
+    const el = document.getElementById("toast-msg");
+    if (!el) return;
+    el.innerText = msg;
+    el.classList.remove("hidden");
+    if (toastTimeout) clearTimeout(toastTimeout);
+    toastTimeout = setTimeout(() => {
+        el.classList.add("hidden");
+    }, 2800);
+}
+
+
+// ==============================================================================
+// 14. PUNTO DE ENTRADA
 // ==============================================================================
 window.addEventListener("DOMContentLoaded", () => {
     initMap();
