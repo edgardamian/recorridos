@@ -399,6 +399,11 @@
                 <span class="chip-label">Acumulada:</span>
                 <span class="chip-val" id="anim-acum-val">1.95 ha</span>
             </div>
+            <div class="anim-telemetry-chip chip-elev" id="anim-chip-elev" title="Altitud topográfica sobre el nivel del mar (DEM)">
+                <span class="chip-icon">⛰️</span>
+                <span class="chip-label">Cota:</span>
+                <span class="chip-val" id="anim-elev-val">1,892.0 m</span>
+            </div>
             <div class="anim-telemetry-chip chip-hito" id="anim-chip-hito">
                 <span class="chip-icon">📍</span>
                 <span class="chip-val" id="anim-hito-val">Fuente del Pípila (a 25 m)</span>
@@ -447,38 +452,85 @@
         </div>
     </div>
 
-    <!-- 8. Perfil Gráfico de Apertura Visual e Isovistas (Drawer Inferior Flotante) -->
+    <!-- 8. Perfiles Gráficos: Apertura Visual (Isovistas) y Altitudinal (Topografía) -->
     <div id="profile-chart-drawer" class="profile-chart-drawer collapsed">
         <div class="profile-drawer-header">
             <div class="profile-drawer-title">
                 <span class="profile-icon">📊</span>
                 <div>
-                    <h3>Perfil de Apertura Visual del Corredor</h3>
-                    <p>Cuenca de visibilidad (m²) en cada punto de los 4.7 km Norte-Sur</p>
+                    <h3>Diagnóstico Espacial: Isovistas y Relieve</h3>
+                    <p>Cuenca visual (m²) y cota altitudinal (msnm) a lo largo de los 4.7 km</p>
                 </div>
             </div>
-            <div class="profile-drawer-badges">
-                <span class="profile-stat-badge"><strong>Máx:</strong> <span id="profile-stat-max">-- m²</span></span>
-                <span class="profile-stat-badge"><strong>Prom:</strong> <span id="profile-stat-avg">-- m²</span></span>
-                <span class="profile-stat-badge"><strong>Mín:</strong> <span id="profile-stat-min">-- m²</span></span>
+
+            <!-- Selector de Vista de Gráficas: Ambas | Isovistas | Altitud -->
+            <div class="profile-view-selector">
+                <button type="button" class="btn-profile-tab active" data-tab="both" id="tab-prof-both">📊 Ambas</button>
+                <button type="button" class="btn-profile-tab" data-tab="iso" id="tab-prof-iso">👁️ Isovistas</button>
+                <button type="button" class="btn-profile-tab" data-tab="elev" id="tab-prof-elev">⛰️ Altitud</button>
             </div>
-            <button type="button" class="btn-close-profile" id="btn-close-profile" title="Cerrar perfil de apertura">✕</button>
+
+            <button type="button" class="btn-close-profile" id="btn-close-profile" title="Cerrar perfiles de análisis">✕</button>
         </div>
-        <div class="profile-chart-container" id="profile-chart-container">
-            <svg id="profile-svg" class="profile-svg" preserveAspectRatio="none" viewBox="0 0 1000 110"></svg>
-            <div id="profile-needle" class="profile-needle">
-                <div class="profile-needle-dot"></div>
+
+        <!-- GRÁFICA 1: ÁREA VISUAL DE ISOVISTAS -->
+        <div class="profile-card-block" id="block-profile-iso">
+            <div class="profile-block-header">
+                <div class="block-title">
+                    <span class="block-dot cyan"></span>
+                    <span>Área Visual de la Isovista</span>
+                </div>
+                <div class="profile-drawer-badges">
+                    <span class="profile-stat-badge"><strong>Máx:</strong> <span id="profile-stat-max">-- m²</span></span>
+                    <span class="profile-stat-badge"><strong>Prom:</strong> <span id="profile-stat-avg">-- m²</span></span>
+                    <span class="profile-stat-badge"><strong>Mín:</strong> <span id="profile-stat-min">-- m²</span></span>
+                </div>
             </div>
-            <div id="profile-tooltip" class="profile-tooltip hidden">
+            <div class="profile-chart-container" id="profile-chart-container-iso">
+                <svg id="profile-svg-iso" class="profile-svg" preserveAspectRatio="none" viewBox="0 0 1000 80"></svg>
+                <div id="profile-needle-iso" class="profile-needle">
+                    <div class="profile-needle-dot"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- GRÁFICA 2: PERFIL ALTITUDINAL (TOPOGRAFÍA) -->
+        <div class="profile-card-block" id="block-profile-elev">
+            <div class="profile-block-header">
+                <div class="block-title">
+                    <span class="block-dot emerald"></span>
+                    <span>Perfil Altitudinal del Terreno (DEM)</span>
+                </div>
+                <div class="profile-drawer-badges">
+                    <span class="profile-stat-badge"><strong>Cota Máx:</strong> <span id="elev-stat-max">-- m</span></span>
+                    <span class="profile-stat-badge"><strong>Cota Mín:</strong> <span id="elev-stat-min">-- m</span></span>
+                    <span class="profile-stat-badge"><strong>Desnivel:</strong> <span id="elev-stat-diff">-- m</span></span>
+                </div>
+            </div>
+            <div class="profile-chart-container" id="profile-chart-container-elev">
+                <svg id="profile-svg-elev" class="profile-svg" preserveAspectRatio="none" viewBox="0 0 1000 80"></svg>
+                <div id="profile-needle-elev" class="profile-needle needle-emerald">
+                    <div class="profile-needle-dot dot-emerald"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tooltip interactivo flotante unificado -->
+        <div id="profile-tooltip" class="profile-tooltip hidden">
+            <div class="pt-row-main">
                 <span class="pt-dist" id="pt-dist">0.0 km</span>
-                <span class="pt-area" id="pt-area">0 m²</span>
                 <span class="pt-hito" id="pt-hito">Catedral</span>
             </div>
+            <div class="pt-row-metrics">
+                <span class="pt-area" id="pt-area">👁️ 0 m²</span>
+                <span class="pt-elev" id="pt-elev">⛰️ 0 msnm</span>
+            </div>
         </div>
+
         <div class="profile-chart-footer">
-            <span>0 km (Pípila)</span>
-            <span class="profile-hint">💡 Haz clic o arrastra sobre la gráfica para saltar en el mapa</span>
-            <span>4.7 km (Calzada Juárez)</span>
+            <span>0 km (Fuente del Pípila • 1,892 m)</span>
+            <span class="profile-hint">💡 Haz clic o arrastra sobre las gráficas para saltar en el mapa</span>
+            <span>4.7 km (Calzada Juárez • 1,901 m)</span>
         </div>
     </div>
 

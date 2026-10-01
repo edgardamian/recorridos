@@ -90,6 +90,10 @@ function initMap() {
         maxPitch: 70,   // Límite de inclinación seguro que evita recorte de frustum y desaparición de capas
         maxZoom: 21,    // Límite superior de zoom seguro para sobre-escalado nítido
         preserveDrawingBuffer: true, // Permite capturas de pantalla nítidas HD vía toDataURL
+        canvasContextAttributes: {
+            preserveDrawingBuffer: true,
+            antialias: true
+        },
         attributionControl: false // Personalizado si se desea
     });
 
@@ -1727,6 +1731,11 @@ function updateAnimationHUD(frame, total) {
     const elAcum = document.getElementById("anim-acum-val");
     if (elAcum) elAcum.innerText = `${frame.area_acum_ha.toFixed(2)} ha`;
 
+    const elElev = document.getElementById("anim-elev-val");
+    if (elElev && frame.elev_m !== undefined) {
+        elElev.innerText = `${frame.elev_m.toFixed(1)} m`;
+    }
+
     const elHito = document.getElementById("anim-hito-val");
     if (elHito && frame.hito) {
         elHito.innerText = `${frame.hito.nombre} (a ${frame.hito.dist_m.toFixed(0)} m)`;
@@ -2720,14 +2729,22 @@ function setupAdvancedFeatures() {
         });
     }
 
-    // 5. Configurar el gráfico de perfil una vez cargados los datos de animación
+    // 5. Selector de Pestañas de Perfil (Ambas, Isovistas, Altitud)
+    const tabBoth = document.getElementById("tab-prof-both");
+    const tabIso = document.getElementById("tab-prof-iso");
+    const tabElev = document.getElementById("tab-prof-elev");
+    if (tabBoth) tabBoth.addEventListener("click", () => setProfileTab("both"));
+    if (tabIso) tabIso.addEventListener("click", () => setProfileTab("iso"));
+    if (tabElev) tabElev.addEventListener("click", () => setProfileTab("elev"));
+
+    // 6. Configurar los gráficos duales una vez cargados los datos de animación
     if (appState.animData && appState.animData.frames) {
-        buildVisualOpennessChart();
+        buildDualProfileCharts();
     }
 }
 
 /**
- * Alterna la visibilidad del Drawer inferior del perfil de apertura visual.
+ * Alterna la visibilidad del Drawer inferior de los perfiles de análisis (Isovistas y Altitud).
  * @param {boolean} [forceState]
  */
 function toggleProfileDrawer(forceState) {
@@ -2739,7 +2756,7 @@ function toggleProfileDrawer(forceState) {
 
     if (open) {
         drawer.classList.remove("collapsed");
-        buildVisualOpennessChart();
+        buildDualProfileCharts();
         updateProfileNeedle(appState.animCurrentFrame);
     } else {
         drawer.classList.add("collapsed");
@@ -2747,15 +2764,51 @@ function toggleProfileDrawer(forceState) {
 }
 
 /**
- * Construye el gráfico SVG del perfil de apertura visual (m² de isovistas) a lo largo del recorrido.
+ * Conmuta entre las vistas de los perfiles: 'both' (ambas), 'iso' (sólo isovistas), 'elev' (sólo altitud).
+ * @param {'both' | 'iso' | 'elev'} tab
  */
-function buildVisualOpennessChart() {
+function setProfileTab(tab) {
+    const tabBoth = document.getElementById("tab-prof-both");
+    const tabIso = document.getElementById("tab-prof-iso");
+    const tabElev = document.getElementById("tab-prof-elev");
+    const blockIso = document.getElementById("block-profile-iso");
+    const blockElev = document.getElementById("block-profile-elev");
+
+    if (tabBoth) tabBoth.classList.toggle("active", tab === "both");
+    if (tabIso) tabIso.classList.toggle("active", tab === "iso");
+    if (tabElev) tabElev.classList.toggle("active", tab === "elev");
+
+    if (blockIso) {
+        if (tab === "both" || tab === "iso") {
+            blockIso.classList.remove("hidden-block");
+        } else {
+            blockIso.classList.add("hidden-block");
+        }
+    }
+
+    if (blockElev) {
+        if (tab === "both" || tab === "elev") {
+            blockElev.classList.remove("hidden-block");
+        } else {
+            blockElev.classList.add("hidden-block");
+        }
+    }
+}
+
+/**
+ * Construye los dos gráficos SVG sincronizados:
+ * 1. Perfil de Apertura Visual (m² de isovistas) en cian brillante.
+ * 2. Perfil Altitudinal del Terreno (msnm topográfico) en esmeralda vivo.
+ */
+function buildDualProfileCharts() {
     if (!appState.animData || !appState.animData.frames) return;
     const frames = appState.animData.frames;
     const total = frames.length;
     if (total === 0) return;
 
-    // Calcular estadísticas
+    // ---------------------------------------------------------
+    // 1. Estadísticas y Curva de Isovistas (Área Visual m²)
+    // ---------------------------------------------------------
     let maxArea = 0;
     let minArea = Infinity;
     let sumArea = 0;
@@ -2767,7 +2820,6 @@ function buildVisualOpennessChart() {
     });
     const avgArea = Math.round(sumArea / total);
 
-    // Actualizar badges de estadísticas
     const elMax = document.getElementById("profile-stat-max");
     const elAvg = document.getElementById("profile-stat-avg");
     const elMin = document.getElementById("profile-stat-min");
@@ -2775,14 +2827,12 @@ function buildVisualOpennessChart() {
     if (elAvg) elAvg.innerText = `${avgArea.toLocaleString()} m²`;
     if (elMin) elMin.innerText = `${minArea.toLocaleString()} m²`;
 
-    // Dimensiones del SVG
     const svgW = 1000;
-    const svgH = 110;
-    const padTop = 16;
+    const svgH = 80;
+    const padTop = 14;
     const padBottom = 8;
     const chartH = svgH - padTop - padBottom;
 
-    // Generar puntos de la curva
     const points = frames.map((f, i) => {
         const x = Number(((i / (total - 1)) * svgW).toFixed(1));
         const norm = maxArea > 0 ? f.area_m2 / maxArea : 0;
@@ -2796,11 +2846,10 @@ function buildVisualOpennessChart() {
     }
     const areaD = `${pathD} L ${svgW},${svgH} L 0,${svgH} Z`;
 
-    // Hitos destacados sobre la curva
-    let landmarkCircles = "";
+    let landmarkCirclesIso = "";
     points.forEach(p => {
         if (p.frame.hito && p.frame.hito.dist_m < 35) {
-            landmarkCircles += `
+            landmarkCirclesIso += `
                 <circle cx="${p.x}" cy="${p.y}" r="3.5" fill="#fbbf24" stroke="#0f172a" stroke-width="1.5">
                     <title>${p.frame.hito.nombre} (${p.frame.area_m2.toLocaleString()} m²)</title>
                 </circle>
@@ -2808,67 +2857,142 @@ function buildVisualOpennessChart() {
         }
     });
 
-    const svg = document.getElementById("profile-svg");
-    if (svg) {
-        svg.innerHTML = `
+    const svgIso = document.getElementById("profile-svg-iso");
+    if (svgIso) {
+        svgIso.innerHTML = `
             <defs>
                 <linearGradient id="profile-area-grad" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="0%" stop-color="#38bdf8" stop-opacity="0.45" />
-                    <stop offset="50%" stop-color="#0284c7" stop-opacity="0.20" />
+                    <stop offset="50%" stop-color="#0284c7" stop-opacity="0.18" />
                     <stop offset="100%" stop-color="#0f172a" stop-opacity="0.0" />
                 </linearGradient>
                 <linearGradient id="profile-stroke-grad" x1="0" y1="0" x2="1" y2="0">
                     <stop offset="0%" stop-color="#38bdf8" />
                     <stop offset="50%" stop-color="#67e8f9" />
-                    <stop offset="100%" stop-color="#fbbf24" />
+                    <stop offset="100%" stop-color="#38bdf8" />
                 </linearGradient>
             </defs>
-            <!-- Área rellena con degradado -->
             <path d="${areaD}" fill="url(#profile-area-grad)" />
-            <!-- Línea de trazo brillante -->
-            <path d="${pathD}" fill="none" stroke="url(#profile-stroke-grad)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" />
-            <!-- Hitos urbanos -->
-            ${landmarkCircles}
+            <path d="${pathD}" fill="none" stroke="url(#profile-stroke-grad)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />
+            ${landmarkCirclesIso}
         `;
     }
 
-    // Interacción táctil / ratón sobre el gráfico
-    setupProfileChartInteractivity(points, total);
+    // ---------------------------------------------------------
+    // 2. Estadísticas y Curva de Altitud Topográfica (DEM msnm)
+    // ---------------------------------------------------------
+    let maxElev = -Infinity;
+    let minElev = Infinity;
+
+    frames.forEach(f => {
+        const e = f.elev_m !== undefined ? f.elev_m : 1900;
+        if (e > maxElev) maxElev = e;
+        if (e < minElev) minElev = e;
+    });
+
+    const elevDiff = (maxElev - minElev).toFixed(1);
+    const elElevMax = document.getElementById("elev-stat-max");
+    const elElevMin = document.getElementById("elev-stat-min");
+    const elElevDiff = document.getElementById("elev-stat-diff");
+    if (elElevMax) elElevMax.innerText = `${maxElev.toFixed(1)} m`;
+    if (elElevMin) elElevMin.innerText = `${minElev.toFixed(1)} m`;
+    if (elElevDiff) elElevDiff.innerText = `+${elevDiff} m`;
+
+    const elevSpan = Math.max(5, maxElev - minElev);
+    const elevPad = elevSpan * 0.08;
+    const elevFloor = minElev - elevPad;
+    const elevCeil = maxElev + elevPad;
+    const elevTotalRange = elevCeil - elevFloor;
+
+    const pointsElev = frames.map((f, i) => {
+        const x = Number(((i / (total - 1)) * svgW).toFixed(1));
+        const e = f.elev_m !== undefined ? f.elev_m : minElev;
+        const norm = (e - elevFloor) / elevTotalRange;
+        const y = Number((padTop + (1 - norm) * chartH).toFixed(1));
+        return { x, y, frame: f, index: i };
+    });
+
+    let pathElevD = `M ${pointsElev[0].x},${pointsElev[0].y}`;
+    for (let i = 1; i < pointsElev.length; i++) {
+        pathElevD += ` L ${pointsElev[i].x},${pointsElev[i].y}`;
+    }
+    const areaElevD = `${pathElevD} L ${svgW},${svgH} L 0,${svgH} Z`;
+
+    let landmarkCirclesElev = "";
+    pointsElev.forEach(p => {
+        if (p.frame.hito && p.frame.hito.dist_m < 35) {
+            landmarkCirclesElev += `
+                <circle cx="${p.x}" cy="${p.y}" r="3.5" fill="#34d399" stroke="#064e3b" stroke-width="1.5">
+                    <title>${p.frame.hito.nombre} (${p.frame.elev_m !== undefined ? p.frame.elev_m.toFixed(1) : ''} msnm)</title>
+                </circle>
+            `;
+        }
+    });
+
+    const svgElev = document.getElementById("profile-svg-elev");
+    if (svgElev) {
+        svgElev.innerHTML = `
+            <defs>
+                <linearGradient id="elev-area-grad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stop-color="#10b981" stop-opacity="0.45" />
+                    <stop offset="50%" stop-color="#059669" stop-opacity="0.20" />
+                    <stop offset="100%" stop-color="#064e3b" stop-opacity="0.0" />
+                </linearGradient>
+                <linearGradient id="elev-stroke-grad" x1="0" y1="0" x2="1" y2="0">
+                    <stop offset="0%" stop-color="#34d399" />
+                    <stop offset="50%" stop-color="#10b981" />
+                    <stop offset="100%" stop-color="#6ee7b7" />
+                </linearGradient>
+            </defs>
+            <path d="${areaElevD}" fill="url(#elev-area-grad)" />
+            <path d="${pathElevD}" fill="none" stroke="url(#elev-stroke-grad)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />
+            ${landmarkCirclesElev}
+        `;
+    }
+
+    // ---------------------------------------------------------
+    // 3. Interacción cruzada sincronizada en ambos gráficos
+    // ---------------------------------------------------------
+    setupDualProfileInteractivity(points, total);
 }
 
+// Compatibilidad retroactiva
+const buildVisualOpennessChart = buildDualProfileCharts;
+
 /**
- * Configura el arrastre y salto interactivo en el gráfico de perfil.
+ * Configura la interactividad unificada (hover, scrub táctil/ratón) sobre ambos contenedores de perfiles.
  */
-function setupProfileChartInteractivity(points, total) {
-    const container = document.getElementById("profile-chart-container");
+function setupDualProfileInteractivity(points, total) {
+    const containers = [
+        document.getElementById("profile-chart-container-iso"),
+        document.getElementById("profile-chart-container-elev")
+    ].filter(Boolean);
+
     const tooltip = document.getElementById("profile-tooltip");
     const ptDist = document.getElementById("pt-dist");
     const ptArea = document.getElementById("pt-area");
+    const ptElev = document.getElementById("pt-elev");
     const ptHito = document.getElementById("pt-hito");
 
-    if (!container || container._hasListener) return;
-    container._hasListener = true;
-
-    function handleChartPointer(e, jumpMap = false) {
+    function handlePointer(container, e, jumpMap = false) {
         const rect = container.getBoundingClientRect();
-        const clientX = e.clientX !== undefined ? e.clientX : (e.touches ? e.touches[0].clientX : rect.left);
+        const clientX = e.clientX !== undefined ? e.clientX : (e.touches && e.touches[0] ? e.touches[0].clientX : rect.left);
         const relX = Math.max(0, Math.min(rect.width, clientX - rect.left));
         const fraction = relX / rect.width;
         const targetIndex = Math.min(total - 1, Math.max(0, Math.round(fraction * (total - 1))));
         const p = points[targetIndex];
 
-        // Mover tooltip
         if (tooltip) {
             tooltip.classList.remove("hidden");
             tooltip.style.left = `${relX}px`;
-            if (ptDist) ptDist.innerText = `${(p.frame.dist_m / 1000).toFixed(2)} km`;
+            if (ptDist) ptDist.innerText = `${(p.frame.dist_m / 1000).toFixed(2)} km (${p.frame.pct.toFixed(0)}%)`;
             if (ptArea) ptArea.innerText = `👁️ ${p.frame.area_m2.toLocaleString()} m²`;
+            if (ptElev) ptElev.innerText = `⛰️ ${p.frame.elev_m !== undefined ? p.frame.elev_m.toFixed(1) : '--'} msnm`;
             if (ptHito) {
                 ptHito.innerText = p.frame.hito ? `📍 ${p.frame.hito.nombre}` : "";
             }
         }
 
-        // Si se hizo clic o arrastre intencional, saltar el mapa y la animación
         if (jumpMap) {
             if (appState.animPlaying) pauseAnimation();
             renderAnimationFrame(targetIndex, false);
@@ -2877,59 +3001,71 @@ function setupProfileChartInteractivity(points, total) {
 
     let isScrubbing = false;
 
-    container.addEventListener("mousedown", (e) => {
-        isScrubbing = true;
-        handleChartPointer(e, true);
+    containers.forEach(cont => {
+        if (cont._hasDualListener) return;
+        cont._hasDualListener = true;
+
+        cont.addEventListener("mousedown", (e) => {
+            isScrubbing = true;
+            handlePointer(cont, e, true);
+        });
+
+        cont.addEventListener("mousemove", (e) => {
+            if (!isScrubbing) {
+                handlePointer(cont, e, false);
+            }
+        });
+
+        cont.addEventListener("mouseleave", () => {
+            if (!isScrubbing && tooltip) {
+                tooltip.classList.add("hidden");
+            }
+        });
+
+        cont.addEventListener("touchstart", (e) => {
+            isScrubbing = true;
+            handlePointer(cont, e, true);
+        }, { passive: true });
+
+        cont.addEventListener("touchmove", (e) => {
+            if (isScrubbing) handlePointer(cont, e, true);
+        }, { passive: true });
+
+        cont.addEventListener("touchend", () => {
+            isScrubbing = false;
+            if (tooltip) tooltip.classList.add("hidden");
+        });
     });
 
     window.addEventListener("mousemove", (e) => {
-        if (isScrubbing) {
-            handleChartPointer(e, true);
+        if (isScrubbing && containers.length > 0) {
+            handlePointer(containers[0], e, true);
         }
     });
 
     window.addEventListener("mouseup", () => {
         isScrubbing = false;
     });
-
-    container.addEventListener("mousemove", (e) => {
-        if (!isScrubbing) {
-            handleChartPointer(e, false);
-        }
-    });
-
-    container.addEventListener("mouseleave", () => {
-        if (!isScrubbing && tooltip) {
-            tooltip.classList.add("hidden");
-        }
-    });
-
-    // Soporte táctil
-    container.addEventListener("touchstart", (e) => {
-        isScrubbing = true;
-        handleChartPointer(e, true);
-    }, { passive: true });
-
-    container.addEventListener("touchmove", (e) => {
-        if (isScrubbing) handleChartPointer(e, true);
-    }, { passive: true });
-
-    container.addEventListener("touchend", () => {
-        isScrubbing = false;
-        if (tooltip) tooltip.classList.add("hidden");
-    });
 }
 
 /**
- * Sincroniza la aguja indicadora de la posición actual del observador sobre el gráfico.
+ * Sincroniza las dos agujas indicadoras de la posición actual del observador en ambos gráficos.
  * @param {number} frameIndex
  */
 function updateProfileNeedle(frameIndex) {
     if (!appState.animData || !appState.animData.total_frames) return;
-    const needle = document.getElementById("profile-needle");
-    if (!needle) return;
     const pct = (frameIndex / (appState.animData.total_frames - 1)) * 100;
-    needle.style.left = `${pct.toFixed(2)}%`;
+    const pctStr = `${pct.toFixed(2)}%`;
+
+    const needleIso = document.getElementById("profile-needle-iso");
+    if (needleIso) needleIso.style.left = pctStr;
+
+    const needleElev = document.getElementById("profile-needle-elev");
+    if (needleElev) needleElev.style.left = pctStr;
+
+    // Fallback retrocompatible
+    const needleOld = document.getElementById("profile-needle");
+    if (needleOld) needleOld.style.left = pctStr;
 }
 
 /**
@@ -2978,11 +3114,18 @@ function setSunLighting(mode) {
 
 /**
  * Exporta la vista actual 3D del mapa como imagen PNG en alta resolución con membrete IMPLAN.
+ * Garantiza captura nítida del lienzo WebGL y fondo institucional opaco.
  */
 async function exportMapScreenshot() {
     if (!map) return;
 
     try {
+        showToast("📸 Generando captura en alta definición...");
+
+        // 1. Forzar render síncrono del WebGL para capturar el búfer de dibujo actual
+        map.triggerRepaint();
+        await new Promise(resolve => map.once("render", resolve));
+
         const mapCanvas = map.getCanvas();
         const width = mapCanvas.width;
         const height = mapCanvas.height;
@@ -2992,10 +3135,14 @@ async function exportMapScreenshot() {
         outCanvas.height = height;
         const ctx = outCanvas.getContext("2d");
 
-        // 1. Dibujar el lienzo WebGL del mapa
+        // 2. Pintar fondo sólido institucional oscuro (garantiza cero transparencia y evita pantalla blanca en visores)
+        ctx.fillStyle = "#090d16";
+        ctx.fillRect(0, 0, width, height);
+
+        // 3. Dibujar el lienzo WebGL del mapa con todo el detalle 2D/3D (edificios, relieve, isovistas, satélite)
         ctx.drawImage(mapCanvas, 0, 0, width, height);
 
-        // 2. Componer tarjeta de membrete institucional en la esquina inferior izquierda
+        // 4. Componer tarjeta de membrete institucional en la esquina inferior izquierda
         const pad = Math.round(width * 0.025);
         const cardW = Math.min(420, Math.round(width * 0.38));
         const cardH = 74;
@@ -3003,7 +3150,7 @@ async function exportMapScreenshot() {
         const cardY = height - pad - cardH;
 
         // Fondo oscuro glassmorphic
-        ctx.fillStyle = "rgba(15, 23, 42, 0.88)";
+        ctx.fillStyle = "rgba(15, 23, 42, 0.90)";
         ctx.strokeStyle = "rgba(56, 189, 248, 0.55)";
         ctx.lineWidth = 2;
         ctx.beginPath();
@@ -3032,7 +3179,7 @@ async function exportMapScreenshot() {
         const camStr = `Zoom: ${map.getZoom().toFixed(1)} • Pitch: ${map.getPitch().toFixed(0)}° • Rumbo: ${map.getBearing().toFixed(0)}°`;
         ctx.fillText(`${dateStr} • ${camStr}`, cardX + 16, cardY + 63);
 
-        // 3. Descargar imagen PNG
+        // 5. Descargar imagen PNG nítida
         const dataUrl = outCanvas.toDataURL("image/png");
         const link = document.createElement("a");
         const dateNow = new Date();
