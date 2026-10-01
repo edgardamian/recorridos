@@ -1772,6 +1772,9 @@ function startAnimation() {
         appState.activePopup = null;
     }
 
+    const profTooltip = document.getElementById("profile-tooltip");
+    if (profTooltip) profTooltip.classList.add("hidden");
+
     // Ocultar temporalmente la envolvente estática para disfrutar la revelación progresiva
     if (map.getLayer("envolvente-fill")) {
         map.setLayoutProperty("envolvente-fill", "visibility", "none");
@@ -2760,6 +2763,8 @@ function toggleProfileDrawer(forceState) {
         updateProfileNeedle(appState.animCurrentFrame);
     } else {
         drawer.classList.add("collapsed");
+        const tooltip = document.getElementById("profile-tooltip");
+        if (tooltip) tooltip.classList.add("hidden");
     }
 }
 
@@ -2922,7 +2927,7 @@ function buildDualProfileCharts() {
     pointsElev.forEach(p => {
         if (p.frame.hito && p.frame.hito.dist_m < 35) {
             landmarkCirclesElev += `
-                <circle cx="${p.x}" cy="${p.y}" r="3.5" fill="#34d399" stroke="#064e3b" stroke-width="1.5">
+                <circle cx="${p.x}" cy="${p.y}" r="3.5" fill="#fbbf24" stroke="#0f172a" stroke-width="1.5">
                     <title>${p.frame.hito.nombre} (${p.frame.elev_m !== undefined ? p.frame.elev_m.toFixed(1) : ''} msnm)</title>
                 </circle>
             `;
@@ -2960,7 +2965,8 @@ function buildDualProfileCharts() {
 const buildVisualOpennessChart = buildDualProfileCharts;
 
 /**
- * Configura la interactividad unificada (hover, scrub táctil/ratón) sobre ambos contenedores de perfiles.
+ * Configura la interactividad unificada sobre ambos contenedores de perfiles.
+ * El tooltip/popup se muestra ÚNICAMENTE cuando el usuario hace clic o arrastra sobre las gráficas.
  */
 function setupDualProfileInteractivity(points, total) {
     const containers = [
@@ -2973,8 +2979,17 @@ function setupDualProfileInteractivity(points, total) {
     const ptArea = document.getElementById("pt-area");
     const ptElev = document.getElementById("pt-elev");
     const ptHito = document.getElementById("pt-hito");
+    const btnClose = document.getElementById("pt-close-btn");
 
-    function handlePointer(container, e, jumpMap = false) {
+    if (btnClose && !btnClose._hasListener) {
+        btnClose._hasListener = true;
+        btnClose.addEventListener("click", (e) => {
+            e.stopPropagation();
+            if (tooltip) tooltip.classList.add("hidden");
+        });
+    }
+
+    function updateTooltipAndJump(container, e, jumpMap = true) {
         const rect = container.getBoundingClientRect();
         const clientX = e.clientX !== undefined ? e.clientX : (e.touches && e.touches[0] ? e.touches[0].clientX : rect.left);
         const relX = Math.max(0, Math.min(rect.width, clientX - rect.left));
@@ -3000,51 +3015,53 @@ function setupDualProfileInteractivity(points, total) {
     }
 
     let isScrubbing = false;
+    let activeContainer = null;
 
     containers.forEach(cont => {
         if (cont._hasDualListener) return;
         cont._hasDualListener = true;
 
+        // Clic / Mousedown: ÚNICAMENTE aquí se muestra el popup y salta la posición en el mapa
         cont.addEventListener("mousedown", (e) => {
             isScrubbing = true;
-            handlePointer(cont, e, true);
+            activeContainer = cont;
+            updateTooltipAndJump(cont, e, true);
         });
 
-        cont.addEventListener("mousemove", (e) => {
-            if (!isScrubbing) {
-                handlePointer(cont, e, false);
-            }
-        });
-
-        cont.addEventListener("mouseleave", () => {
-            if (!isScrubbing && tooltip) {
-                tooltip.classList.add("hidden");
-            }
-        });
-
+        // Soporte táctil en pantallas móviles
         cont.addEventListener("touchstart", (e) => {
             isScrubbing = true;
-            handlePointer(cont, e, true);
+            activeContainer = cont;
+            updateTooltipAndJump(cont, e, true);
         }, { passive: true });
 
         cont.addEventListener("touchmove", (e) => {
-            if (isScrubbing) handlePointer(cont, e, true);
+            if (isScrubbing) {
+                updateTooltipAndJump(cont, e, true);
+            }
         }, { passive: true });
 
         cont.addEventListener("touchend", () => {
             isScrubbing = false;
-            if (tooltip) tooltip.classList.add("hidden");
         });
     });
 
+    // Arrastre continuo mientras se mantiene presionado el ratón
     window.addEventListener("mousemove", (e) => {
-        if (isScrubbing && containers.length > 0) {
-            handlePointer(containers[0], e, true);
+        if (isScrubbing && activeContainer) {
+            updateTooltipAndJump(activeContainer, e, true);
         }
     });
 
     window.addEventListener("mouseup", () => {
         isScrubbing = false;
+    });
+
+    // Ocultar el popup al hacer clic fuera del área de las gráficas
+    document.addEventListener("click", (e) => {
+        if (!e.target.closest(".profile-chart-container") && !e.target.closest("#profile-tooltip") && !e.target.closest(".btn-profile-tab")) {
+            if (tooltip) tooltip.classList.add("hidden");
+        }
     });
 }
 
