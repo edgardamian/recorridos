@@ -157,7 +157,7 @@ function initMap() {
  */
 async function loadAllDatasets() {
     try {
-        updateLoadingText("Cargando conjuntos de datos espaciales...", "Leyendo ruta, hitos, envolvente y estructuras urbanas");
+        updateLoadingText("Cargando conjuntos de datos espaciales...", "Leyendo ruta, hitos, alcance visual y estructuras urbanas");
 
         // 1. Modo Estático (sin servidor / doble clic directo en index.html):
         // Se leen directamente las variables globales inyectadas por los scripts de datos/

@@ -28,7 +28,7 @@
 
     /* Colores temáticos de capas */
     --color-route: #38bdf8;       /* Azul cian brillante para la ruta peatonal */
-    --color-envelope: #ef4444;    /* Rojo semitransparente para la envolvente visual */
+    --color-envelope: #ef4444;    /* Rojo semitransparente para el alcance visual */
     --color-landmark: #fbbf24;    /* Amarillo ámbar para hitos/referencias */
     --color-start: #10b981;       /* Verde esmeralda para el inicio */
     --color-end: #ef4444;         /* Rojo carmesí para el fin */
