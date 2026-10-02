@@ -156,22 +156,7 @@
                 </label>
             </div>
 
-            <!-- Puntos de Inicio y Fin -->
-            <div class="control-item" onclick="document.getElementById('chk-inicio-fin').click()">
-                <div class="item-info">
-                    <div class="legend-badge-terminal">
-                        <span class="legend-dot-start"></span>
-                        <span class="legend-dot-end"></span>
-                    </div>
-                    <span>Puntos Inicio y Fin</span>
-                </div>
-                <label class="switch" onclick="event.stopPropagation()">
-                    <input type="checkbox" id="chk-inicio-fin" checked>
-                    <span class="slider emerald"></span>
-                </label>
-            </div>
-
-            <!-- Ruta Peatonal -->
+            <!-- Ruta Peatonal (Línea) -->
             <div class="control-item" onclick="document.getElementById('chk-ruta').click()">
                 <div class="item-info">
                     <div class="legend-badge-line">
@@ -182,6 +167,30 @@
                 <label class="switch" onclick="event.stopPropagation()">
                     <input type="checkbox" id="chk-ruta" checked>
                     <span class="slider"></span>
+                </label>
+            </div>
+
+            <!-- Punto de Inicio -->
+            <div class="control-item" onclick="document.getElementById('chk-inicio').click()">
+                <div class="item-info">
+                    <div class="legend-badge badge-point" style="background:#10b981; border: 2px solid #0f172a; box-shadow: 0 0 6px rgba(16, 185, 129, 0.6);"></div>
+                    <span>Punto de Inicio</span>
+                </div>
+                <label class="switch" onclick="event.stopPropagation()">
+                    <input type="checkbox" id="chk-inicio" checked>
+                    <span class="slider emerald"></span>
+                </label>
+            </div>
+
+            <!-- Punto de Fin -->
+            <div class="control-item" onclick="document.getElementById('chk-fin').click()">
+                <div class="item-info">
+                    <div class="legend-badge badge-point" style="background:#ef4444; border: 2px solid #0f172a; box-shadow: 0 0 6px rgba(239, 68, 68, 0.6);"></div>
+                    <span>Punto de Fin</span>
+                </div>
+                <label class="switch" onclick="event.stopPropagation()">
+                    <input type="checkbox" id="chk-fin" checked>
+                    <span class="slider red"></span>
                 </label>
             </div>
 

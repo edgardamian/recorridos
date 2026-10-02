@@ -35,7 +35,8 @@ const appState = {
     landmarksLabelsVisible: false, // ¿Etiquetas de texto de hitos visibles?
     landmarksData: [],            // Almacén en memoria de puntos de referencia
     landmarkMarkers: [],          // Referencias a los marcadores HTML en el mapa
-    terminalMarkers: [],          // Referencias a los marcadores HTML de Inicio y Fin
+    startMarker: null,            // Referencia al marcador HTML de Inicio (Verde)
+    endMarker: null,              // Referencia al marcador HTML de Fin (Rojo)
     activeLandmarkFid: null,      // FID del hito actualmente seleccionado/activo
     activePopup: null,            // Instancia del popup activo actualmente en pantalla
     // Estado de la animación de isovistas
@@ -1255,12 +1256,17 @@ function setupStartEndMarkers(ptoInicio, ptoFin) {
         .setPopup(new maplibregl.Popup({ offset: 12 }).setHTML(`<strong>${ptoFin.nombre}</strong>`))
         .addTo(map);
 
-    appState.terminalMarkers = [markerInicio, markerFin];
+    appState.startMarker = markerInicio;
+    appState.endMarker = markerFin;
 
-    // Sincronizar visibilidad con el estado del interruptor
-    const chk = document.getElementById("chk-inicio-fin");
-    if (chk && !chk.checked) {
+    // Sincronizar visibilidad inicial con los interruptores individuales
+    const chkIni = document.getElementById("chk-inicio");
+    if (chkIni && !chkIni.checked) {
         elInicio.style.display = "none";
+    }
+
+    const chkFin = document.getElementById("chk-fin");
+    if (chkFin && !chkFin.checked) {
         elFin.style.display = "none";
     }
 }
@@ -1350,22 +1356,32 @@ function setupUIEventListeners() {
     bindLayerToggle("chk-envolvente", ["envolvente-fill", "envolvente-line"]);
     bindLayerToggle("chk-ruta", ["ruta-line", "ruta-halo"]);
 
-    // Switch de Puntos de Inicio y Fin de Ruta
-    const chkInicioFin = document.getElementById("chk-inicio-fin");
-    if (chkInicioFin) {
-        chkInicioFin.addEventListener("change", (e) => {
+    // Switch individual de Punto de Inicio
+    const chkInicio = document.getElementById("chk-inicio");
+    if (chkInicio) {
+        chkInicio.addEventListener("change", (e) => {
             const isVisible = e.target.checked;
-            const displayVal = isVisible ? "" : "none";
-            if (appState.terminalMarkers && appState.terminalMarkers.length) {
-                appState.terminalMarkers.forEach(marker => {
-                    if (marker) {
-                        const el = marker.getElement();
-                        if (el) el.style.display = displayVal;
-                        if (!isVisible && marker.getPopup() && marker.getPopup().isOpen()) {
-                            marker.getPopup().remove();
-                        }
-                    }
-                });
+            if (appState.startMarker) {
+                const el = appState.startMarker.getElement();
+                if (el) el.style.display = isVisible ? "" : "none";
+                if (!isVisible && appState.startMarker.getPopup() && appState.startMarker.getPopup().isOpen()) {
+                    appState.startMarker.getPopup().remove();
+                }
+            }
+        });
+    }
+
+    // Switch individual de Punto de Fin
+    const chkFin = document.getElementById("chk-fin");
+    if (chkFin) {
+        chkFin.addEventListener("change", (e) => {
+            const isVisible = e.target.checked;
+            if (appState.endMarker) {
+                const el = appState.endMarker.getElement();
+                if (el) el.style.display = isVisible ? "" : "none";
+                if (!isVisible && appState.endMarker.getPopup() && appState.endMarker.getPopup().isOpen()) {
+                    appState.endMarker.getPopup().remove();
+                }
             }
         });
     }
