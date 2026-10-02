@@ -1320,7 +1320,7 @@ function showLandmarkPopup(coords, nombre, fid) {
     // 2. Actualizar ID del hito activo en el estado
     appState.activeLandmarkFid = fid;
 
-    // 3. Resaltar en el mapa el hito activo (halo resplandeciente y etiqueta dorada)
+    // 3. Resaltar en el mapa el hito activo (halo resplandeciente discreto)
     if (map && map.getLayer("referencias-active-glow")) {
         map.setFilter("referencias-active-glow", [
             "==",
@@ -1328,9 +1328,18 @@ function showLandmarkPopup(coords, nombre, fid) {
             String(fid)
         ]);
     }
+    // Al abrir el popup manualmente, NO se muestran etiquetas de texto flotantes,
+    // ya que el popup desplegado ya contiene el nombre e información completa del hito.
     if (map && map.getLayer("referencias-active-label")) {
         map.setFilter("referencias-active-label", [
             "==",
+            ["to-string", ["coalesce", ["get", "fid"], ""]],
+            "__none__"
+        ]);
+    }
+    if (map && map.getLayer("referencias-labels")) {
+        map.setFilter("referencias-labels", [
+            "!=",
             ["to-string", ["coalesce", ["get", "fid"], ""]],
             String(fid)
         ]);
@@ -1377,6 +1386,9 @@ function showLandmarkPopup(coords, nombre, fid) {
             }
             if (map && map.getLayer("referencias-active-label")) {
                 map.setFilter("referencias-active-label", ["==", ["to-string", ["coalesce", ["get", "fid"], ""]], "__none__"]);
+            }
+            if (map && map.getLayer("referencias-labels")) {
+                map.setFilter("referencias-labels", null);
             }
             document.querySelectorAll(".landmark-list-item").forEach(item => {
                 item.classList.remove("active");
@@ -1487,6 +1499,15 @@ function toggleAllLandmarkNames() {
 
     if (map && map.getLayer("referencias-labels")) {
         map.setLayoutProperty("referencias-labels", "visibility", vis);
+        if (appState.activeLandmarkFid && appState.activePopup) {
+            map.setFilter("referencias-labels", [
+                "!=",
+                ["to-string", ["coalesce", ["get", "fid"], ""]],
+                String(appState.activeLandmarkFid)
+            ]);
+        } else {
+            map.setFilter("referencias-labels", null);
+        }
     }
 
     if (btn) {

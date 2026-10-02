@@ -167,3 +167,12 @@ git push origin main
         - **Línea 1**: Distancia (chip-dist), Isovista (chip-iso) y Acumulada (chip-area) ocupan el ancho superior con espacio reservado para el botón de minimizar (-). Se activan abreviaturas adaptables (Iso: y Acum:) en pantallas reducidas.
         - **Línea 2**: Cota topográfica (chip-elev) e Hito urbano (chip-hito) se ubican **uno al lado del otro en la misma línea**, aprovechando el 100% del ancho del contenedor sin desbordes ni cortes.
       - **Compatibilidad de escritorio**: La propiedad display: contents; en .telemetry-line-top y .telemetry-line-bottom preserva intacto el flujo horizontal continuo en pantallas de escritorio.
+   8. **Supresión de Etiquetas Flotantes Redundantes al Abrir Popups Manualmente**:
+      - **Causa**: Al hacer clic en un hito o seleccionarlo desde la lista lateral, showLandmarkPopup activaba la capa 
+eferencias-active-label con el FID del punto. Debido a que los hitos cuentan con configuraciones de desplazamiento y anclaje direccional (left, 
+ight, 	op, etc.), la etiqueta de texto flotante se proyectaba fuera del área del popup, mostrándose duplicada e innecesaria junto al globo informativo.
+      - **Solución implementada**:
+        1. En showLandmarkPopup, 
+eferencias-active-label se filtra explícitamente a __none__, evitando que se renderice texto flotante duplicado cuando el popup ya muestra el nombre, número de hito y coordenadas completas.
+        2. Si la capa maestra de nombres (
+eferencias-labels) está encendida globalmente por el usuario, se filtra para ocultar la etiqueta del hito activo (!= fid), restaurándose al cerrar el popup (close).
