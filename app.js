@@ -3864,7 +3864,7 @@ async function exportMapScreenshot() {
         // Tipografía y textos institucionales
         ctx.fillStyle = "#38bdf8";
         ctx.font = "bold 13px system-ui, -apple-system, sans-serif";
-        ctx.fillText("IMPLAN MORELIA • CORREDOR NORTE-SUR", cardX + 16, cardY + 24);
+        ctx.fillText("IMPLAN MORELIA • CORREDOR CULTURAL", cardX + 16, cardY + 24);
 
         ctx.fillStyle = "#f8fafc";
         ctx.font = "600 15px system-ui, -apple-system, sans-serif";
@@ -3883,7 +3883,7 @@ async function exportMapScreenshot() {
         const link = document.createElement("a");
         const dateNow = new Date();
         const stamp = `${dateNow.getFullYear()}${String(dateNow.getMonth() + 1).padStart(2, '0')}${String(dateNow.getDate()).padStart(2, '0')}_${String(dateNow.getHours()).padStart(2, '0')}${String(dateNow.getMinutes()).padStart(2, '0')}`;
-        link.download = `IMPLAN_Isovistas_Morelia_${stamp}.png`;
+        link.download = `IMPLAN_Corredor_Cultural_${stamp}.png`;
         link.href = dataUrl;
         document.body.appendChild(link);
         link.click();
