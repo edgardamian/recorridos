@@ -908,7 +908,7 @@ function updateCamModeUI(is3D) {
             if (text) text.innerText = "Cámara 3D (Detrás)";
         } else {
             btn.classList.remove("active");
-            if (icon) icon.innerHTML = `<svg class="ui-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/><path d="M3 15h18"/><path d="M9 3v18"/><path d="M15 3v18"/></svg>`;
+            if (icon) icon.innerHTML = `<svg class="ui-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/></svg>`;
             if (text) text.innerText = "Vista 2D (Cenital)";
         }
     }
@@ -1610,7 +1610,7 @@ function updateStatsUI(meta, edif) {
     const elLandmarksCount = document.getElementById("stat-landmarks-count");
 
     if (elRouteLen) elRouteLen.innerText = `${(meta.longitud_ruta_metros / 1000).toFixed(1)} km`;
-    if (elBuildingCount) elBuildingCount.innerText = `${edif.features.length.toLocaleString()} edif`;
+    if (elBuildingCount) elBuildingCount.innerText = `${edif.features.length.toLocaleString()} estr`;
     if (elLandmarksCount) elLandmarksCount.innerText = `${meta.total_hitos} hitos`;
 }
 
