@@ -2230,6 +2230,21 @@ body.measuring-active .maplibregl-canvas {
     box-shadow: 0 0 10px rgba(244, 63, 94, 0.4);
 }
 
+.btn-profile-action.btn-profile-stop {
+    background: rgba(51, 65, 85, 0.7);
+    border-color: rgba(148, 163, 184, 0.35);
+    color: #e2e8f0;
+    box-shadow: none;
+}
+
+.btn-profile-action.btn-profile-stop:hover {
+    background: rgba(71, 85, 105, 0.95);
+    border-color: var(--color-cyan);
+    color: var(--color-cyan);
+    box-shadow: 0 0 10px rgba(56, 189, 248, 0.25);
+    transform: translateY(-1px);
+}
+
 .profile-speed-group {
     background: transparent !important;
     border: none !important;
@@ -2862,6 +2877,9 @@ body.measuring-active .maplibregl-canvas {
     .btn-profile-action {
         padding: 3px 6px !important;
         font-size: 10px !important;
+    }
+    .btn-profile-stop span {
+        display: none !important;
     }
 }
 

@@ -1740,6 +1740,9 @@ function setupUIEventListeners() {
     const btnAnimStop = document.getElementById("btn-anim-stop");
     if (btnAnimStop) btnAnimStop.addEventListener("click", stopAnimation);
 
+    const btnProfileStop = document.getElementById("btn-profile-stop");
+    if (btnProfileStop) btnProfileStop.addEventListener("click", stopAnimation);
+
     const btnCamFollow = document.getElementById("btn-anim-cam-follow");
     if (btnCamFollow) btnCamFollow.addEventListener("click", () => toggleCameraFollow());
 
@@ -2348,6 +2351,12 @@ function pauseAnimation() {
 function stopAnimation() {
     pauseAnimation();
     renderAnimationFrame(0, false);
+    updatePlayButtonUI(false);
+
+    // Ocultar marcador de muestreo del perfil y tooltip si estuvieran activos
+    hideProfileProbeFromMap();
+    const tooltip = document.getElementById("profile-tooltip");
+    if (tooltip) tooltip.classList.add("hidden");
 
     // Restaurar visibilidad de la envolvente estática si su checkbox está activo
     const chkEnv = document.getElementById("chk-envolvente");
@@ -2452,6 +2461,12 @@ function toggleAnimationPlayer(forceState) {
     const playSvg = `<svg class="ui-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>`;
 
     if (appState.animPlayerVisible) {
+        // Minimizar el cajón de perfil de isovistas si está activo para evitar solapamiento
+        const drawer = document.getElementById("profile-chart-drawer");
+        if (drawer && !drawer.classList.contains("collapsed")) {
+            toggleProfileDrawer(false);
+        }
+
         // 1. Mostrar barra de controles y activar botón en esquina inferior izquierda
         if (bar) bar.classList.remove("hidden");
         if (pill) pill.classList.add("active");
@@ -3282,6 +3297,11 @@ function toggleProfileDrawer(forceState) {
     const open = forceState !== undefined ? forceState : isCollapsed;
 
     if (open) {
+        // Minimizar la herramienta de animación si está activa para evitar solapamiento
+        if (appState.animPlayerVisible) {
+            toggleAnimationPlayer(false);
+        }
+
         drawer.classList.remove("collapsed");
         buildDualProfileCharts();
         updateProfileNeedle(appState.animCurrentFrame);
