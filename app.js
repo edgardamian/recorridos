@@ -35,8 +35,8 @@ const appState = {
     landmarksLabelsVisible: false, // ¿Etiquetas de texto de hitos visibles?
     landmarksData: [],            // Almacén en memoria de puntos de referencia
     landmarkMarkers: [],          // Referencias a los marcadores HTML en el mapa
-    startMarker: null,            // Referencia al marcador HTML de Inicio (Verde)
-    endMarker: null,              // Referencia al marcador HTML de Fin (Rojo)
+    startMarker: null,            // (Migrado a capa nativa WebGL punto-inicio-circle)
+    endMarker: null,              // (Migrado a capa nativa WebGL punto-fin-circle)
     activeLandmarkFid: null,      // FID del hito actualmente seleccionado/activo
     activePopup: null,            // Instancia del popup activo actualmente en pantalla
     // Estado de la animación de isovistas
@@ -204,10 +204,35 @@ async function loadAllDatasets() {
             maxzoom: 20         // Detalle submétrico (z20 = ~15 cm/pixel). Zooms más cercanos sobre-escalan con máxima fidelidad
         });
 
-        // Agregar marcadores visuales para el Punto de Inicio y Punto de Fin
-        if (metaRes.punto_inicio && metaRes.punto_fin) {
-            setupStartEndMarkers(metaRes.punto_inicio, metaRes.punto_fin);
-        }
+        // Registrar fuentes GeoJSON nativas para el Punto de Inicio y Punto de Fin
+        // Procesadas en WebGL por GPU para anclaje milimétrico y cero retraso/desplazamiento al mover el mapa
+        const iniCoords = (metaRes.punto_inicio && metaRes.punto_inicio.coords) || [-101.188794, 19.710675];
+        const iniNombre = (metaRes.punto_inicio && metaRes.punto_inicio.nombre) || "Inicio Recorrido (Norte)";
+        map.addSource("punto_inicio_src", {
+            type: "geojson",
+            data: {
+                type: "FeatureCollection",
+                features: [{
+                    type: "Feature",
+                    geometry: { type: "Point", coordinates: iniCoords },
+                    properties: { tipo: "Punto de Inicio", nombre: iniNombre }
+                }]
+            }
+        });
+
+        const finCoords = (metaRes.punto_fin && metaRes.punto_fin.coords) || [-101.19529, 19.695907];
+        const finNombre = (metaRes.punto_fin && metaRes.punto_fin.nombre) || "Fin Recorrido (Sur)";
+        map.addSource("punto_fin_src", {
+            type: "geojson",
+            data: {
+                type: "FeatureCollection",
+                features: [{
+                    type: "Feature",
+                    geometry: { type: "Point", coordinates: finCoords },
+                    properties: { tipo: "Punto de Fin", nombre: finNombre }
+                }]
+            }
+        });
 
     } catch (error) {
         console.error("[Error] Falló la carga de datos GeoJSON:", error);
@@ -400,6 +425,20 @@ function setupLayers() {
     // -------------------------------------------------------------------------
     // CAPA 4: PUNTOS DE REFERENCIA (HITOS DESTACADOS EN AMARILLO)
     // -------------------------------------------------------------------------
+    // Halo resplandeciente unificado para los puntos de referencia
+    map.addLayer({
+        id: "referencias-glow",
+        type: "circle",
+        source: "referencias_src",
+        layout: { visibility: "visible" },
+        paint: {
+            "circle-color": "#fbbf24",
+            "circle-radius": 13,
+            "circle-opacity": 0.35,
+            "circle-blur": 0.5
+        }
+    });
+
     map.addLayer({
         id: "referencias-circles",
         type: "circle",
@@ -492,6 +531,76 @@ function setupLayers() {
             "text-halo-blur": 0.5
         }
     });
+
+    // -------------------------------------------------------------------------
+    // CAPA 5: PUNTO DE INICIO Y PUNTO DE FIN (RENDERIZADOS EN WEBGL NATIVO)
+    // Cero retraso en paneo/inclinación, anclaje estricto al terreno y estilo armónico
+    // -------------------------------------------------------------------------
+    const chkIniEl = document.getElementById("chk-inicio");
+    const iniInitVis = (chkIniEl && !chkIniEl.checked) ? "none" : "visible";
+
+    if (map.getSource("punto_inicio_src")) {
+        // Halo de resplandor esmeralda para el Punto de Inicio
+        map.addLayer({
+            id: "punto-inicio-glow",
+            type: "circle",
+            source: "punto_inicio_src",
+            layout: { visibility: iniInitVis },
+            paint: {
+                "circle-color": "#10b981",
+                "circle-radius": 14,
+                "circle-opacity": 0.45,
+                "circle-blur": 0.5
+            }
+        });
+
+        // Círculo central con borde de alto contraste
+        map.addLayer({
+            id: "punto-inicio-circle",
+            type: "circle",
+            source: "punto_inicio_src",
+            layout: { visibility: iniInitVis },
+            paint: {
+                "circle-color": "#10b981",
+                "circle-radius": 7.5,
+                "circle-stroke-color": "#0f172a",
+                "circle-stroke-width": 2.5
+            }
+        });
+    }
+
+    const chkFinEl = document.getElementById("chk-fin");
+    const finInitVis = (chkFinEl && !chkFinEl.checked) ? "none" : "visible";
+
+    if (map.getSource("punto_fin_src")) {
+        // Halo de resplandor carmesí para el Punto de Fin
+        map.addLayer({
+            id: "punto-fin-glow",
+            type: "circle",
+            source: "punto_fin_src",
+            layout: { visibility: finInitVis },
+            paint: {
+                "circle-color": "#ef4444",
+                "circle-radius": 14,
+                "circle-opacity": 0.45,
+                "circle-blur": 0.5
+            }
+        });
+
+        // Círculo central con borde de alto contraste
+        map.addLayer({
+            id: "punto-fin-circle",
+            type: "circle",
+            source: "punto_fin_src",
+            layout: { visibility: finInitVis },
+            paint: {
+                "circle-color": "#ef4444",
+                "circle-radius": 7.5,
+                "circle-stroke-color": "#0f172a",
+                "circle-stroke-width": 2.5
+            }
+        });
+    }
 
     // -------------------------------------------------------------------------
     // CAPAS DE MEDICIÓN INTERACTIVA (DISTANCIA Y ÁREA)
@@ -649,7 +758,7 @@ function setup3DFeatures() {
             "fill-extrusion-base": 0,
             "fill-extrusion-opacity": 0.90
         }
-    }, "referencias-circles");
+    }, map.getLayer("referencias-glow") ? "referencias-glow" : (map.getLayer("referencias-circles") ? "referencias-circles" : undefined));
 }
 
 /**
@@ -968,6 +1077,34 @@ function setupInteractivity() {
     });
 
     // -------------------------------------------------------------------------
+    // 1.1 Clic en Punto de Inicio y Punto de Fin (Capas Nativas WebGL)
+    // -------------------------------------------------------------------------
+    [
+        { layerId: "punto-inicio-circle", tipo: "Punto de Inicio", color: "#10b981" },
+        { layerId: "punto-fin-circle", tipo: "Punto de Fin", color: "#ef4444" }
+    ].forEach(({ layerId, tipo, color }) => {
+        if (!map.getLayer(layerId)) return;
+
+        map.on("click", layerId, (e) => {
+            if (appState.measure && appState.measure.active) return;
+            if (!e.features || !e.features.length) return;
+            const feat = e.features[0];
+            const coords = feat.geometry.coordinates.slice();
+            const props = feat.properties || {};
+            showTerminalPopup(coords, props.tipo || tipo, props.nombre || (tipo.includes("Inicio") ? "Inicio Recorrido" : "Fin Recorrido"), color);
+        });
+
+        map.on("mouseenter", layerId, () => {
+            if (appState.measure && appState.measure.active) return;
+            map.getCanvas().style.cursor = "pointer";
+        });
+        map.on("mouseleave", layerId, () => {
+            if (appState.measure && appState.measure.active) return;
+            map.getCanvas().style.cursor = "";
+        });
+    });
+
+    // -------------------------------------------------------------------------
     // 2. Eventos nativos de capas de edificios para cursor inmediato
     // -------------------------------------------------------------------------
     map.on("mouseenter", "edificios-3d", () => {
@@ -998,11 +1135,13 @@ function setupInteractivity() {
         const now = Date.now();
         if (now - lastSelectionTimestamp < 180) return; // Prevenir disparos duplicados
 
-        // Si se hizo clic sobre un hito o su etiqueta, las capas de hitos ya lo atienden
+        // Si se hizo clic sobre un hito, punto terminal o su etiqueta, esas capas ya lo atienden
+        const checkTerminalLayers = ["referencias-circles", "referencias-labels", "referencias-active-label", "punto-inicio-circle", "punto-fin-circle"]
+            .filter(id => map.getLayer(id));
         const refHits = map.queryRenderedFeatures([
             [point.x - 8, point.y - 8],
             [point.x + 8, point.y + 8]
-        ], { layers: ["referencias-circles", "referencias-labels", "referencias-active-label"] });
+        ], { layers: checkTerminalLayers });
         if (refHits.length > 0) return;
 
         // Determinar capas activas de edificios
@@ -1085,6 +1224,8 @@ function setupInteractivity() {
 
             const checkLayers = [];
             if (map.getLayer("referencias-circles")) checkLayers.push("referencias-circles");
+            if (map.getLayer("punto-inicio-circle")) checkLayers.push("punto-inicio-circle");
+            if (map.getLayer("punto-fin-circle")) checkLayers.push("punto-fin-circle");
             if (appState.buildings3DActive && map.getLayer("edificios-3d")) {
                 checkLayers.push("edificios-3d");
             } else if (map.getLayer("edificios-fill") && map.getLayoutProperty("edificios-fill", "visibility") !== "none") {
@@ -1229,46 +1370,53 @@ function showBuildingPopup(lngLat, props) {
 
 
 // ==============================================================================
-// 7. MARCADORES DE INICIO Y FIN & ETIQUETAS HTML
+// 7. POPUPS DE PUNTOS TERMINALES (INICIO Y FIN) & ETIQUETAS NATIVAS
 // ==============================================================================
 
 /**
- * Configura los marcadores de Inicio y Fin con estilos personalizados y animación.
+ * Despliega un popup informativo para el Punto de Inicio o Punto de Fin.
+ * @param {[number, number]} coords - Coordenadas [lng, lat]
+ * @param {string} tipo - "Punto de Inicio" o "Punto de Fin"
+ * @param {string} nombre - Nombre del hito o terminal
+ * @param {string} color - Color temático hex (#10b981 o #ef4444)
  */
-function setupStartEndMarkers(ptoInicio, ptoFin) {
-    // Marcador de Inicio (Verde)
-    const elInicio = document.createElement("div");
-    elInicio.className = "marker-start-end marker-start";
-    elInicio.innerHTML = `<div style="width:14px; height:14px; background:#10b981; border:3px solid #0f172a; border-radius:50%; box-shadow:0 0 14px #10b981;"></div>`;
-    
-    const markerInicio = new maplibregl.Marker({ element: elInicio })
-        .setLngLat(ptoInicio.coords)
-        .setPopup(new maplibregl.Popup({ offset: 12 }).setHTML(`<strong>${ptoInicio.nombre}</strong>`))
-        .addTo(map);
-
-    // Marcador de Fin (Rojo)
-    const elFin = document.createElement("div");
-    elFin.className = "marker-start-end marker-end";
-    elFin.innerHTML = `<div style="width:14px; height:14px; background:#ef4444; border:3px solid #0f172a; border-radius:50%; box-shadow:0 0 14px #ef4444;"></div>`;
-
-    const markerFin = new maplibregl.Marker({ element: elFin })
-        .setLngLat(ptoFin.coords)
-        .setPopup(new maplibregl.Popup({ offset: 12 }).setHTML(`<strong>${ptoFin.nombre}</strong>`))
-        .addTo(map);
-
-    appState.startMarker = markerInicio;
-    appState.endMarker = markerFin;
-
-    // Sincronizar visibilidad inicial con los interruptores individuales
-    const chkIni = document.getElementById("chk-inicio");
-    if (chkIni && !chkIni.checked) {
-        elInicio.style.display = "none";
+function showTerminalPopup(coords, tipo, nombre, color) {
+    if (appState.activePopup) {
+        appState.activePopup.remove();
+        appState.activePopup = null;
     }
 
-    const chkFin = document.getElementById("chk-fin");
-    if (chkFin && !chkFin.checked) {
-        elFin.style.display = "none";
-    }
+    const isInicio = tipo.includes("Inicio");
+    const iconSvg = isInicio
+        ? `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polygon points="10 8 16 12 10 16 10 8"/></svg>`
+        : `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><rect x="9" y="9" width="6" height="6"/></svg>`;
+
+    const html = `
+        <div style="padding: 4px 6px; min-width: 175px;">
+            <div style="font-size:10px; font-weight:700; color:${color}; background:${color}20; border:1px solid ${color}40; padding:2px 7px; border-radius:4px; display:inline-flex; align-items:center; gap:5px; margin-bottom:5px; text-transform:uppercase;">
+                ${iconSvg}
+                ${tipo}
+            </div>
+            <div style="font-size:14px; font-weight:700; color:#f8fafc; line-height:1.3; margin-bottom:6px;">${nombre}</div>
+            <div style="font-size:11px; color:#94a3b8; display:flex; flex-direction:column; gap:2px;">
+                <span><strong>Latitud:</strong> ${coords[1].toFixed(6)}° N</span>
+                <span><strong>Longitud:</strong> ${coords[0].toFixed(6)}° W</span>
+            </div>
+        </div>
+    `;
+
+    const popup = new maplibregl.Popup({ offset: 12, closeButton: true })
+        .setLngLat(coords)
+        .setHTML(html)
+        .addTo(map);
+
+    appState.activePopup = popup;
+
+    popup.on("close", () => {
+        if (appState.activePopup === popup) {
+            appState.activePopup = null;
+        }
+    });
 }
 
 /**
@@ -1356,42 +1504,45 @@ function setupUIEventListeners() {
     bindLayerToggle("chk-envolvente", ["envolvente-fill", "envolvente-line"]);
     bindLayerToggle("chk-ruta", ["ruta-line", "ruta-halo"]);
 
-    // Switch individual de Punto de Inicio
+    // Switch individual de Punto de Inicio (capas nativas WebGL)
     const chkInicio = document.getElementById("chk-inicio");
     if (chkInicio) {
         chkInicio.addEventListener("change", (e) => {
             const isVisible = e.target.checked;
-            if (appState.startMarker) {
-                const el = appState.startMarker.getElement();
-                if (el) el.style.display = isVisible ? "" : "none";
-                if (!isVisible && appState.startMarker.getPopup() && appState.startMarker.getPopup().isOpen()) {
-                    appState.startMarker.getPopup().remove();
-                }
+            const vis = isVisible ? "visible" : "none";
+            if (map.getLayer("punto-inicio-circle")) map.setLayoutProperty("punto-inicio-circle", "visibility", vis);
+            if (map.getLayer("punto-inicio-glow")) map.setLayoutProperty("punto-inicio-glow", "visibility", vis);
+            if (!isVisible && appState.activePopup) {
+                appState.activePopup.remove();
+                appState.activePopup = null;
             }
         });
     }
 
-    // Switch individual de Punto de Fin
+    // Switch individual de Punto de Fin (capas nativas WebGL)
     const chkFin = document.getElementById("chk-fin");
     if (chkFin) {
         chkFin.addEventListener("change", (e) => {
             const isVisible = e.target.checked;
-            if (appState.endMarker) {
-                const el = appState.endMarker.getElement();
-                if (el) el.style.display = isVisible ? "" : "none";
-                if (!isVisible && appState.endMarker.getPopup() && appState.endMarker.getPopup().isOpen()) {
-                    appState.endMarker.getPopup().remove();
-                }
+            const vis = isVisible ? "visible" : "none";
+            if (map.getLayer("punto-fin-circle")) map.setLayoutProperty("punto-fin-circle", "visibility", vis);
+            if (map.getLayer("punto-fin-glow")) map.setLayoutProperty("punto-fin-glow", "visibility", vis);
+            if (!isVisible && appState.activePopup) {
+                appState.activePopup.remove();
+                appState.activePopup = null;
             }
         });
     }
     
-    // Switch de Puntos de Referencia (círculos y etiquetas nativas)
+    // Switch de Puntos de Referencia (círculos, halo y etiquetas nativas)
     const chkRef = document.getElementById("chk-referencias");
     if (chkRef) {
         chkRef.addEventListener("change", (e) => {
             const isChecked = e.target.checked;
             const vis = isChecked ? "visible" : "none";
+            if (map.getLayer("referencias-glow")) {
+                map.setLayoutProperty("referencias-glow", "visibility", vis);
+            }
             if (map.getLayer("referencias-circles")) {
                 map.setLayoutProperty("referencias-circles", "visibility", vis);
             }
