@@ -158,3 +158,12 @@ git push origin main
         2. Se amplió el ancho dinámico del reproductor a width: min(860px, calc(100vw - 360px)) con contenedor de chips responsivo (overflow-x: auto sin barras de scroll invasivas).
         3. En pp.js (updateAnimationHUD), se vinculó elHito.title con el texto completo para garantizar lectura en tooltip flotante nativo en cualquier pantalla.
 
+
+   6. **Velocidad de Reproducción 1/2x y Despliegue Múltiple de Hitos Sin Empalmes**:
+      - **Velocidad 0.5x**: Se agregó la opción de velocidad 0.5x en el grupo de control de animación (btn-speed) permitiendo una inspección lenta y detallada del recorrido a lo largo del corredor.
+      - **Hitos Múltiples Concurrentes**: Durante la animación, cuando el observador pasa cerca de varios hitos urbanos contiguos, el motor activa todos los marcadores simultáneamente con etiquetas ancladas en direcciones cardinales opuestas (bottom, top, left, right) para evitar cualquier empalme visual.
+   7. **Optimización Responsiva Móvil del HUD de Animación (Cota e Hito en Línea 2)**:
+      - **Estructura en 2 líneas limpias**:
+        - **Línea 1**: Distancia (chip-dist), Isovista (chip-iso) y Acumulada (chip-area) ocupan el ancho superior con espacio reservado para el botón de minimizar (-). Se activan abreviaturas adaptables (Iso: y Acum:) en pantallas reducidas.
+        - **Línea 2**: Cota topográfica (chip-elev) e Hito urbano (chip-hito) se ubican **uno al lado del otro en la misma línea**, aprovechando el 100% del ancho del contenedor sin desbordes ni cortes.
+      - **Compatibilidad de escritorio**: La propiedad display: contents; en .telemetry-line-top y .telemetry-line-bottom preserva intacto el flujo horizontal continuo en pantallas de escritorio.

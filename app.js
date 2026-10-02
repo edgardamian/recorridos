@@ -43,7 +43,7 @@ const appState = {
     animData: null,               // Dataset con los 235 fotogramas
     animPlaying: false,           // ¿Animación reproduciéndose?
     animCurrentFrame: 0,          // Fotograma actual (0 a total-1)
-    animSpeed: 1.0,               // Velocidad (1x, 2x, 4x)
+    animSpeed: 1.0,               // Velocidad (½x, 1x, 2x, 4x)
     animCameraFollow: true,       // ¿Cámara sigue al observador?
     animCameraMode: "2d",         // Modo de seguimiento por defecto: "2d" (cenital) o "3d" (detrás del punto)
     animPlayerVisible: false,     // ¿Barra de controles visible? Inicia minimizado por defecto
@@ -155,6 +155,41 @@ function initMap() {
 // ==============================================================================
 
 /**
+ * Configuración de anclajes y desplazamientos espaciales calibrados por hito.
+ * Separa deliberadamente las etiquetas de hitos contiguos en direcciones cardinales opuestas
+ * (arriba, abajo, izquierda, derecha) para evitar que se empalmen visualmente en 2D y 3D,
+ * permitiendo que ambos permanezcan encendidos con suficiente tiempo para ser leídos con calma.
+ */
+const LANDMARK_LABEL_CONFIG = {
+    1:  { anchor: "bottom",       offset: [0, -1.35] },  // Fuente del Pípila (Norte / Inicio)
+    2:  { anchor: "left",         offset: [1.35, 0] },   // Casa de la cultura (Este)
+    3:  { anchor: "right",        offset: [-1.35, 0] },  // Plaza del Carmen (Oeste)
+    4:  { anchor: "right",        offset: [-1.45, 0] },  // Jardín San José (Oeste, opuesto al templo)
+    5:  { anchor: "left",         offset: [1.45, 0] },   // Templo de San José (Este, opuesto al jardín)
+    6:  { anchor: "bottom",       offset: [0, -1.45] },  // Templo de San Francisco (Norte / Arriba)
+    7:  { anchor: "top",          offset: [0, 1.45] },   // Casa de las Artesanías (Sur / Abajo)
+    8:  { anchor: "right",        offset: [-1.45, 0] },  // Plaza Valladolid (Oeste / Izquierda)
+    9:  { anchor: "left",         offset: [1.45, 0] },   // Plaza Melchor Ocampo (Este / Derecha)
+    10: { anchor: "bottom",       offset: [0, -1.55] },  // Catedral de Morelia (Norte / Arriba)
+    11: { anchor: "right",        offset: [-1.45, 0] },  // Plaza de Armas (Oeste / Izquierda)
+    12: { anchor: "bottom",       offset: [0, -1.45] },  // Palacio Clavijero (Norte / Arriba)
+    13: { anchor: "left",         offset: [1.45, 0] },   // Biblioteca Universitaria (Este / Derecha)
+    14: { anchor: "right",        offset: [-1.45, 0] },  // Mercado de Dulces (Oeste / Izquierda)
+    15: { anchor: "right",        offset: [-1.35, 0] },  // Palacio Municipal (Oeste / Izquierda)
+    16: { anchor: "bottom",       offset: [0, -1.45] },  // Museo del Poder Judicial (Norte / Arriba)
+    17: { anchor: "bottom",       offset: [0, -1.45] },  // Cerrada de San Agustín (Norte / Arriba)
+    18: { anchor: "right",        offset: [-1.45, 0] },  // Plaza de San Agustín (Oeste / Izquierda)
+    19: { anchor: "top",          offset: [0, 1.45] },   // Templo de San Agustín (Sur / Abajo)
+    20: { anchor: "left",         offset: [1.45, 0] },   // Casa Natal de Morelos (Este / Derecha)
+    21: { anchor: "bottom",       offset: [0, -1.35] },  // Fuente del Ángel (Norte / Arriba)
+    22: { anchor: "bottom-right", offset: [-1.2, -0.8] },// Plazuela de Capuchinas (Noroeste)
+    23: { anchor: "top-left",     offset: [1.2, 0.8] },  // Templo de Capuchinas (Sureste)
+    24: { anchor: "right",        offset: [-1.35, 0] },  // Mercado Independencia (Oeste / Izquierda)
+    25: { anchor: "left",         offset: [1.35, 0] },   // Plaza Carrillo (Este / Derecha)
+    26: { anchor: "top",          offset: [0, 1.35] }    // Calzada Juárez (Sur / Fin)
+};
+
+/**
  * Carga todos los archivos GeoJSON y metadatos en paralelo usando Promise.all.
  */
 async function loadAllDatasets() {
@@ -186,6 +221,16 @@ async function loadAllDatasets() {
 
         console.log("[Datos] Metadatos cargados:", metaRes);
         console.log(`[Datos] Edificios: ${edifRes.features.length} | Hitos: ${refRes.features.length}`);
+
+        // Inyectar anclajes y desplazamientos espaciales calculados a cada hito para evitar empalmes
+        if (refRes && refRes.features) {
+            refRes.features.forEach(feat => {
+                const fid = feat.properties && feat.properties.fid;
+                const cfg = LANDMARK_LABEL_CONFIG[fid] || { anchor: "bottom", offset: [0, -1.35] };
+                feat.properties.label_anchor = cfg.anchor;
+                feat.properties.label_offset = cfg.offset;
+            });
+        }
 
         // Actualizar estadísticas en las tarjetas del panel de control
         updateStatsUI(metaRes, edifRes);
@@ -491,8 +536,11 @@ function setupLayers() {
                 16, 13,
                 18, 14.5
             ],
-            "text-offset": [0, -1.25],
-            "text-anchor": "bottom",
+            "text-offset": ["coalesce", ["get", "label_offset"], ["literal", [0, -1.25]]],
+            "text-anchor": ["coalesce", ["get", "label_anchor"], "bottom"],
+            "text-max-width": 9,
+            "text-line-height": 1.15,
+            "text-justify": "auto",
             "text-pitch-alignment": "viewport",
             "text-rotation-alignment": "viewport",
             "text-allow-overlap": false,
@@ -518,12 +566,16 @@ function setupLayers() {
             "text-field": ["get", "nombre"],
             "text-font": ["Open Sans Bold", "Montserrat Medium"],
             "text-size": 13,
-            "text-offset": [0, -1.25],
-            "text-anchor": "bottom",
+            "text-offset": ["coalesce", ["get", "label_offset"], ["literal", [0, -1.35]]],
+            "text-anchor": ["coalesce", ["get", "label_anchor"], "bottom"],
+            "text-max-width": 9,
+            "text-line-height": 1.15,
+            "text-justify": "auto",
             "text-pitch-alignment": "viewport",
             "text-rotation-alignment": "viewport",
-            "text-allow-overlap": false,
-            "text-ignore-placement": false,
+            "text-allow-overlap": true,
+            "text-ignore-placement": true,
+            "text-padding": 3,
             "text-optional": false
         },
         filter: ["==", ["to-string", ["coalesce", ["get", "fid"], ""]], "__none__"],
@@ -1017,11 +1069,11 @@ function updateCamModeUI(is3D) {
         if (is3D) {
             btn.classList.add("active");
             if (icon) icon.innerHTML = `<svg class="ui-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>`;
-            if (text) text.innerText = "Cámara 3D (Detrás)";
+            if (text) text.innerHTML = `<span class="btn-text-full">Cámara 3D (Detrás)</span><span class="btn-text-short">Cámara 3D</span>`;
         } else {
             btn.classList.remove("active");
             if (icon) icon.innerHTML = `<svg class="ui-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/></svg>`;
-            if (text) text.innerText = "Vista 2D (Cenital)";
+            if (text) text.innerHTML = `<span class="btn-text-full">Vista 2D (Cenital)</span><span class="btn-text-short">Vista 2D</span>`;
         }
     }
 
@@ -1650,7 +1702,7 @@ function setupUIEventListeners() {
     const btnCamMode = document.getElementById("btn-anim-cam-mode");
     if (btnCamMode) btnCamMode.addEventListener("click", () => toggleCameraMode());
 
-    // Botones de Velocidad (1x, 2x, 4x)
+    // Botones de Velocidad (½x, 1x, 2x, 4x)
     document.querySelectorAll(".btn-speed").forEach(btn => {
         btn.addEventListener("click", () => {
             const spd = parseFloat(btn.dataset.speed);
@@ -1916,10 +1968,11 @@ function computeLandmarkAnimationWindows() {
             }
         });
 
-        // Asignar exclusivamente el hito óptimo en este fotograma (0 o 1 hito activo)
+        // Mantener encendidos simultáneamente todos los hitos del entorno en este fotograma
+        // para que las etiquetas de hitos próximos permanezcan visibles sin encimarse
         if (candidates.length > 0) {
             candidates.sort((a, b) => a.relScore - b.relScore);
-            frameActiveFids[i] = [candidates[0].fid];
+            frameActiveFids[i] = candidates.map(c => c.fid);
         } else {
             frameActiveFids[i] = [];
         }
@@ -1947,12 +2000,14 @@ function syncAnimatedLandmarks(frameIndex) {
 
     appState.animActiveFids = currentActiveFids.slice();
 
-    // 1. Construir la expresión de filtro MapLibre (cero empalme: exactamente 0 o 1 hito a la vez)
+    // 1. Construir la expresión de filtro MapLibre (admite múltiples hitos activos simultáneos)
     let filterExpr;
     if (currentActiveFids.length === 0) {
         filterExpr = ["==", ["to-string", ["coalesce", ["get", "fid"], ""]], "__none__"];
-    } else {
+    } else if (currentActiveFids.length === 1) {
         filterExpr = ["==", ["to-string", ["coalesce", ["get", "fid"], ""]], String(currentActiveFids[0])];
+    } else {
+        filterExpr = ["any", ...currentActiveFids.map(fid => ["==", ["to-string", ["coalesce", ["get", "fid"], ""]], String(fid)])];
     }
 
     // 2. Aplicar el filtro a las capas nativas de resalte en WebGL
@@ -2144,7 +2199,7 @@ function updateAnimationHUD(frame, total) {
                     }
                 });
             }
-            const labelText = activeNames.join(", ") || (frame.hito ? frame.hito.nombre : "Hito");
+            const labelText = activeNames.join(" • ") || (frame.hito ? frame.hito.nombre : "Hito");
             elHito.innerHTML = `<span style="color:#fbbf24; font-weight:700;">★ ${labelText}</span>`;
             elHito.title = `Hito en tránsito: ${labelText}`;
         } else if (frame.hito) {
@@ -2267,13 +2322,17 @@ function updatePlayButtonUI(isPlaying) {
         } else {
             btn.classList.remove("playing");
             if (icon) icon.innerHTML = `<svg class="ui-icon" width="12" height="12" viewBox="0 0 24 24" fill="currentColor" stroke="none"><polygon points="6 4 20 12 6 20 6 4"/></svg>`;
-            if (text) text.innerText = appState.animCurrentFrame > 0 ? "Continuar" : "Iniciar Recorrido";
+            if (text) {
+                text.innerHTML = appState.animCurrentFrame > 0
+                    ? "Continuar"
+                    : `<span class="btn-text-full">Iniciar Recorrido</span><span class="btn-text-short">Iniciar</span>`;
+            }
         }
     }
 }
 
 /**
- * Ajusta la velocidad de reproducción de la animación (1x, 2x, 4x).
+ * Ajusta la velocidad de reproducción de la animación (½x, 1x, 2x, 4x).
  */
 function setAnimationSpeed(speed) {
     appState.animSpeed = speed;
@@ -2300,13 +2359,9 @@ function toggleCameraFollow(forceState) {
     const btn = document.getElementById("btn-anim-cam-follow");
     if (btn) {
         const videoSvg = `<svg class="ui-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m22 8-6 4 6 4V8Z"/><rect width="14" height="12" x="2" y="6" rx="2"/></svg>`;
-        if (appState.animCameraFollow) {
-            btn.classList.add("active");
-            btn.innerHTML = `${videoSvg} Seguir Cámara (On)`;
-        } else {
-            btn.classList.remove("active");
-            btn.innerHTML = `${videoSvg} Seguir Cámara (Off)`;
-        }
+        const stateStr = appState.animCameraFollow ? "On" : "Off";
+        btn.classList.toggle("active", appState.animCameraFollow);
+        btn.innerHTML = `${videoSvg} <span class="btn-text-full">Seguir Cámara (${stateStr})</span><span class="btn-text-short">Cámara (${stateStr})</span>`;
     }
 }
 
@@ -2323,6 +2378,7 @@ function toggleAnimationPlayer(forceState) {
 
     const bar = document.getElementById("anim-player-bar");
     const pill = document.getElementById("btn-anim-pill-launcher");
+    const ctrlGroup = document.getElementById("ctrl-anim-group");
     const btnSide = document.getElementById("btn-toggle-anim-player");
     const playSvg = `<svg class="ui-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>`;
 
@@ -2330,6 +2386,9 @@ function toggleAnimationPlayer(forceState) {
         // 1. Mostrar barra de controles y activar botón en esquina inferior izquierda
         if (bar) bar.classList.remove("hidden");
         if (pill) pill.classList.add("active");
+        if (ctrlGroup && window.innerWidth <= 768) {
+            ctrlGroup.style.display = "none";
+        }
 
         // 2. Mostrar el marcador del observador
         if (appState.observerMarker) {
@@ -2348,6 +2407,9 @@ function toggleAnimationPlayer(forceState) {
         // 1. Ocultar barra de controles y desactivar botón en esquina inferior izquierda
         if (bar) bar.classList.add("hidden");
         if (pill) pill.classList.remove("active");
+        if (ctrlGroup) {
+            ctrlGroup.style.display = "";
+        }
 
         // 2. Si estaba reproduciéndose, pausar y apagar cualquier hito activo de la animación
         if (appState.animPlaying) {

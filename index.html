@@ -593,49 +593,53 @@
 
         <!-- Fila 1: Telemetría y Métricas en Tiempo Real -->
         <div class="anim-telemetry-row">
-            <div class="anim-telemetry-chip chip-dist">
-                <span class="chip-icon"><svg class="ui-icon" width="12" height="12" viewBox="0 0 24 24" fill="none"
-                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
-                    </svg></span>
-                <span class="chip-val" id="anim-dist-val">0.00 km</span>
-                <span class="chip-sub" id="anim-pct-val">(0%)</span>
+            <div class="telemetry-line-top">
+                <div class="anim-telemetry-chip chip-dist">
+                    <span class="chip-icon"><svg class="ui-icon" width="12" height="12" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
+                        </svg></span>
+                    <span class="chip-val" id="anim-dist-val">0.00 km</span>
+                    <span class="chip-sub" id="anim-pct-val">(0%)</span>
+                </div>
+                <div class="anim-telemetry-chip chip-iso">
+                    <span class="chip-icon"><svg class="ui-icon" width="12" height="12" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                            <circle cx="12" cy="12" r="3" />
+                        </svg></span>
+                    <span class="chip-label"><span class="btn-text-full">Isovista:</span><span class="btn-text-short">Iso:</span></span>
+                    <span class="chip-val" id="anim-iso-val">19,503 m²</span>
+                </div>
+                <div class="anim-telemetry-chip chip-area">
+                    <span class="chip-icon"><svg class="ui-icon" width="12" height="12" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <polygon points="12 2 2 7 12 12 22 7 12 2" />
+                            <polyline points="2 17 12 22 22 17" />
+                            <polyline points="2 12 12 17 22 12" />
+                        </svg></span>
+                    <span class="chip-label"><span class="btn-text-full">Acumulada:</span><span class="btn-text-short">Acum:</span></span>
+                    <span class="chip-val" id="anim-acum-val">1.95 ha</span>
+                </div>
             </div>
-            <div class="anim-telemetry-chip chip-iso">
-                <span class="chip-icon"><svg class="ui-icon" width="12" height="12" viewBox="0 0 24 24" fill="none"
-                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-                        <circle cx="12" cy="12" r="3" />
-                    </svg></span>
-                <span class="chip-label">Isovista:</span>
-                <span class="chip-val" id="anim-iso-val">19,503 m²</span>
-            </div>
-            <div class="anim-telemetry-chip chip-area">
-                <span class="chip-icon"><svg class="ui-icon" width="12" height="12" viewBox="0 0 24 24" fill="none"
-                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <polygon points="12 2 2 7 12 12 22 7 12 2" />
-                        <polyline points="2 17 12 22 22 17" />
-                        <polyline points="2 12 12 17 22 12" />
-                    </svg></span>
-                <span class="chip-label">Acumulada:</span>
-                <span class="chip-val" id="anim-acum-val">1.95 ha</span>
-            </div>
-            <div class="anim-telemetry-chip chip-elev" id="anim-chip-elev"
-                title="Altitud topográfica sobre el nivel del mar (DEM)">
-                <span class="chip-icon"><svg class="ui-icon" width="12" height="12" viewBox="0 0 24 24" fill="none"
-                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="m8 3 4 8 5-5 5 15H2L8 3z" />
-                    </svg></span>
-                <span class="chip-label">Cota:</span>
-                <span class="chip-val" id="anim-elev-val">1,892.0 m</span>
-            </div>
-            <div class="anim-telemetry-chip chip-hito" id="anim-chip-hito">
-                <span class="chip-icon"><svg class="ui-icon" width="12" height="12" viewBox="0 0 24 24" fill="none"
-                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
-                        <circle cx="12" cy="10" r="3" />
-                    </svg></span>
-                <span class="chip-val" id="anim-hito-val">Fuente del Pípila (a 25 m)</span>
+            <div class="telemetry-line-bottom">
+                <div class="anim-telemetry-chip chip-elev" id="anim-chip-elev"
+                    title="Altitud topográfica sobre el nivel del mar (DEM)">
+                    <span class="chip-icon"><svg class="ui-icon" width="12" height="12" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="m8 3 4 8 5-5 5 15H2L8 3z" />
+                        </svg></span>
+                    <span class="chip-label">Cota:</span>
+                    <span class="chip-val" id="anim-elev-val">1,892.0 m</span>
+                </div>
+                <div class="anim-telemetry-chip chip-hito" id="anim-chip-hito">
+                    <span class="chip-icon"><svg class="ui-icon" width="12" height="12" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+                            <circle cx="12" cy="10" r="3" />
+                        </svg></span>
+                    <span class="chip-val" id="anim-hito-val">Fuente del Pípila (a 25 m)</span>
+                </div>
             </div>
             <button class="btn-anim-min" id="btn-anim-min" title="Minimizar barra de animación">−</button>
         </div>
@@ -653,49 +657,54 @@
 
         <!-- Fila 3: Controles de Reproducción, Velocidad y Cámara -->
         <div class="anim-controls-row">
-            <div class="anim-playback-group">
-                <button type="button" class="btn-anim-action btn-play" id="btn-anim-play" title="Reproducir animación">
-                    <span id="anim-play-icon"><svg class="ui-icon" width="12" height="12" viewBox="0 0 24 24"
-                            fill="currentColor" stroke="none">
-                            <polygon points="6 4 20 12 6 20 6 4" />
-                        </svg></span> <span id="anim-play-text">Iniciar Recorrido</span>
-                </button>
-                <button type="button" class="btn-anim-action btn-stop" id="btn-anim-stop" title="Reiniciar al inicio">
-                    <svg class="ui-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+            <div class="anim-controls-top">
+                <div class="anim-playback-group">
+                    <button type="button" class="btn-anim-action btn-play" id="btn-anim-play" title="Reproducir animación">
+                        <span id="anim-play-icon"><svg class="ui-icon" width="12" height="12" viewBox="0 0 24 24"
+                                fill="currentColor" stroke="none">
+                                <polygon points="6 4 20 12 6 20 6 4" />
+                            </svg></span> <span id="anim-play-text"><span class="btn-text-full">Iniciar Recorrido</span><span class="btn-text-short">Iniciar</span></span>
+                    </button>
+                    <button type="button" class="btn-anim-action btn-stop" id="btn-anim-stop" title="Reiniciar al inicio">
+                        <svg class="ui-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+                            <polyline points="3 3 3 8 8 8" />
+                        </svg> <span class="btn-text-full">Reiniciar</span><span class="btn-text-short">Reset</span>
+                    </button>
+                </div>
+
+                <!-- Selector de Velocidad (½x, 1x, 2x, 4x) -->
+                <div class="anim-speed-group">
+                    <span class="speed-label">Vel:</span>
+                    <button type="button" class="btn-speed" data-speed="0.5" title="Media velocidad (½x / 0.5x - más lento)">½x</button>
+                    <button type="button" class="btn-speed active" data-speed="1" title="Velocidad normal (1x)">1x</button>
+                    <button type="button" class="btn-speed" data-speed="2" title="Doble velocidad (2x)">2x</button>
+                    <button type="button" class="btn-speed" data-speed="4" title="Cuádruple velocidad (4x)">4x</button>
+                </div>
+            </div>
+
+            <div class="anim-cam-group">
+                <!-- Botón Seguir con Cámara -->
+                <button type="button" class="btn-cam-follow active" id="btn-anim-cam-follow"
+                    title="Acompañar con la cámara al observador mientras avanza">
+                    <svg class="ui-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                         stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
-                        <polyline points="3 3 3 8 8 8" />
-                    </svg> Reiniciar
+                        <path d="m22 8-6 4 6 4V8Z" />
+                        <rect width="14" height="12" x="2" y="6" rx="2" />
+                    </svg> <span class="btn-text-full">Seguir Cámara (On)</span><span class="btn-text-short">Cámara (On)</span>
+                </button>
+
+                <!-- Botón Modo de Cámara 3D Detrás / 2D Cenital (Inicia en 2D por defecto) -->
+                <button type="button" class="btn-cam-mode-toggle" id="btn-anim-cam-mode"
+                    title="Alternar entre Cámara Detrás 3D y Vista Cenital 2D">
+                    <span id="anim-cam-mode-icon"><svg class="ui-icon" width="13" height="13" viewBox="0 0 24 24"
+                            fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                            stroke-linejoin="round">
+                            <rect x="3" y="3" width="18" height="18" rx="2" />
+                        </svg></span> <span id="anim-cam-mode-text"><span class="btn-text-full">Vista 2D (Cenital)</span><span class="btn-text-short">Vista 2D</span></span>
                 </button>
             </div>
-
-            <!-- Selector de Velocidad (1x, 2x, 4x) -->
-            <div class="anim-speed-group">
-                <span class="speed-label">Vel:</span>
-                <button type="button" class="btn-speed active" data-speed="1" title="Velocidad normal (1x)">1x</button>
-                <button type="button" class="btn-speed" data-speed="2" title="Doble velocidad (2x)">2x</button>
-                <button type="button" class="btn-speed" data-speed="4" title="Cuádruple velocidad (4x)">4x</button>
-            </div>
-
-            <!-- Botón Seguir con Cámara -->
-            <button type="button" class="btn-cam-follow active" id="btn-anim-cam-follow"
-                title="Acompañar con la cámara al observador mientras avanza">
-                <svg class="ui-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                    stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="m22 8-6 4 6 4V8Z" />
-                    <rect width="14" height="12" x="2" y="6" rx="2" />
-                </svg> Seguir Cámara (On)
-            </button>
-
-            <!-- Botón Modo de Cámara 3D Detrás / 2D Cenital (Inicia en 2D por defecto) -->
-            <button type="button" class="btn-cam-mode-toggle" id="btn-anim-cam-mode"
-                title="Alternar entre Cámara Detrás 3D y Vista Cenital 2D">
-                <span id="anim-cam-mode-icon"><svg class="ui-icon" width="13" height="13" viewBox="0 0 24 24"
-                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                        stroke-linejoin="round">
-                        <rect x="3" y="3" width="18" height="18" rx="2" />
-                    </svg></span> <span id="anim-cam-mode-text">Vista 2D (Cenital)</span>
-            </button>
         </div>
     </div>
 
