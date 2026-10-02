@@ -1564,6 +1564,117 @@ input:checked + .slider:before {
     }
 }
 
+/* Marcador del Punto de Muestreo de Datos (Interacción Gráficas - Mapa) */
+.probe-marker-container {
+    position: relative;
+    width: 32px;
+    height: 32px;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+    z-index: 1050;
+}
+
+.probe-pulse-ring {
+    position: absolute;
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(56, 189, 248, 0.45) 0%, rgba(16, 185, 129, 0.35) 60%, transparent 80%);
+    border: 1.5px solid rgba(56, 189, 248, 0.85);
+    box-shadow: 0 0 14px rgba(56, 189, 248, 0.5);
+    animation: probePulse 1.6s ease-out infinite;
+}
+
+.probe-core-dot {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #38bdf8 0%, #10b981 100%);
+    border: 2.5px solid #ffffff;
+    box-shadow: 0 0 12px #38bdf8, 0 0 20px rgba(16, 185, 129, 0.8);
+    z-index: 3;
+    position: relative;
+}
+
+.probe-badge-pill {
+    position: absolute;
+    bottom: 38px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(15, 23, 42, 0.94);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border: 1px solid rgba(56, 189, 248, 0.55);
+    border-radius: 20px;
+    padding: 3px 9px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    white-space: nowrap;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.75), 0 0 12px rgba(56, 189, 248, 0.25);
+    z-index: 4;
+    pointer-events: none;
+    animation: probeBadgeFloat 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.probe-badge-pill::after {
+    content: "";
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    border-width: 5px;
+    border-style: solid;
+    border-color: rgba(15, 23, 42, 0.94) transparent transparent transparent;
+}
+
+.probe-badge-dist {
+    font-size: 10.5px;
+    font-weight: 700;
+    color: #38bdf8;
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+}
+
+.probe-badge-elev {
+    font-size: 10px;
+    font-weight: 600;
+    color: #34d399;
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+}
+
+.probe-badge-sep {
+    color: rgba(148, 163, 184, 0.45);
+    font-size: 9px;
+}
+
+@keyframes probePulse {
+    0% {
+        transform: scale(0.6);
+        opacity: 1;
+    }
+    100% {
+        transform: scale(2.2);
+        opacity: 0;
+    }
+}
+
+@keyframes probeBadgeFloat {
+    from {
+        opacity: 0;
+        transform: translate(-50%, 6px);
+    }
+    to {
+        opacity: 1;
+        transform: translate(-50%, 0);
+    }
+}
+
 /* --------------------------------------------------------------------------
    19. HERRAMIENTAS DE MEDICIÓN INTERACTIVA (DISTANCIA Y ÁREA)
    -------------------------------------------------------------------------- */
@@ -2684,6 +2795,17 @@ body.measuring-active .maplibregl-canvas {
     .btn-cam-mode-toggle svg {
         width: 12px !important;
         height: 12px !important;
+    }
+    .probe-badge-pill {
+        padding: 2px 6px !important;
+        gap: 4px !important;
+        bottom: 32px !important;
+    }
+    .probe-badge-dist {
+        font-size: 9px !important;
+    }
+    .probe-badge-elev {
+        font-size: 8.5px !important;
     }
 }
 

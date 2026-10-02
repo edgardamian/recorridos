@@ -48,6 +48,7 @@ const appState = {
     animCameraMode: "2d",         // Modo de seguimiento por defecto: "2d" (cenital) o "3d" (detrás del punto)
     animPlayerVisible: false,     // ¿Barra de controles visible? Inicia minimizado por defecto
     observerMarker: null,         // Marcador HTML del observador en el mapa
+    profileProbeMarker: null,     // Marcador HTML del punto de muestreo al interactuar con las gráficas
     prebuiltFeatures: [],         // Features GeoJSON precalculadas para 60fps constantes
     animTimer: null,              // Temporizador del bucle de animación
     animLandmarkWindows: [],      // Array precalculado de hitos activos por cada fotograma
@@ -1180,6 +1181,25 @@ function setupInteractivity() {
     });
 
     // -------------------------------------------------------------------------
+    // 2. Clic interactivo en la Ruta (Vinculación cruzada con gráficas de perfil)
+    // -------------------------------------------------------------------------
+    ["ruta-line", "ruta-halo"].forEach(layerId => {
+        if (!map.getLayer(layerId)) return;
+        map.on("click", layerId, (e) => {
+            if (appState.measure && appState.measure.active) return;
+            handleRouteClick(e.lngLat);
+        });
+        map.on("mouseenter", layerId, () => {
+            if (appState.measure && appState.measure.active) return;
+            map.getCanvas().style.cursor = "pointer";
+        });
+        map.on("mouseleave", layerId, () => {
+            if (appState.measure && appState.measure.active) return;
+            map.getCanvas().style.cursor = "";
+        });
+    });
+
+    // -------------------------------------------------------------------------
     // 3. Selección infalible de edificios (Búfer de 8px + Tolerancia de arrastre)
     //    Evita clics perdidos en perspectiva 3D o por leve vibración del cursor
     // -------------------------------------------------------------------------
@@ -1190,8 +1210,8 @@ function setupInteractivity() {
         const now = Date.now();
         if (now - lastSelectionTimestamp < 180) return; // Prevenir disparos duplicados
 
-        // Si se hizo clic sobre un hito, punto terminal o su etiqueta, esas capas ya lo atienden
-        const checkTerminalLayers = ["referencias-circles", "referencias-labels", "referencias-active-label", "punto-inicio-circle", "punto-fin-circle"]
+        // Si se hizo clic sobre un hito, punto terminal, ruta o su etiqueta, esas capas ya lo atienden
+        const checkTerminalLayers = ["referencias-circles", "referencias-labels", "referencias-active-label", "punto-inicio-circle", "punto-fin-circle", "ruta-line", "ruta-halo"]
             .filter(id => map.getLayer(id));
         const refHits = map.queryRenderedFeatures([
             [point.x - 8, point.y - 8],
@@ -2258,6 +2278,8 @@ function startAnimation() {
     appState.animPlaying = true;
     updatePlayButtonUI(true);
 
+    hideProfileProbeFromMap();
+
     // Cerrar cualquier popup activo para que no quede rezagado al avanzar la cámara
     if (appState.activePopup) {
         appState.activePopup.remove();
@@ -3241,6 +3263,7 @@ function toggleProfileDrawer(forceState) {
         drawer.classList.add("collapsed");
         const tooltip = document.getElementById("profile-tooltip");
         if (tooltip) tooltip.classList.add("hidden");
+        hideProfileProbeFromMap();
     }
 }
 
@@ -3441,6 +3464,149 @@ function buildDualProfileCharts() {
 const buildVisualOpennessChart = buildDualProfileCharts;
 
 /**
+ * Crea o actualiza en el mapa el marcador que señala el punto exacto donde se toma el dato.
+ * Despliega un halo pulsante y una insignia flotante con distancia y cota.
+ * @param {object} p - Objeto con { frame, index }
+ */
+function showProfileProbeOnMap(p) {
+    if (!map || !p || !p.frame) return;
+
+    const coords = p.frame.coords;
+    const distKm = (p.frame.dist_m / 1000).toFixed(2);
+    const elevM = p.frame.elev_m !== undefined ? p.frame.elev_m.toFixed(1) : "--";
+
+    if (!appState.profileProbeMarker) {
+        const el = document.createElement("div");
+        el.className = "probe-marker-container";
+        el.innerHTML = `
+            <div class="probe-pulse-ring"></div>
+            <div class="probe-core-dot"></div>
+            <div class="probe-badge-pill" id="probe-badge-pill">
+                <span class="probe-badge-dist" id="probe-badge-dist">${distKm} km</span>
+                <span class="probe-badge-sep">•</span>
+                <span class="probe-badge-elev" id="probe-badge-elev">${elevM} m</span>
+            </div>
+        `;
+
+        appState.profileProbeMarker = new maplibregl.Marker({
+            element: el,
+            anchor: "center"
+        })
+        .setLngLat(coords)
+        .addTo(map);
+    } else {
+        appState.profileProbeMarker.setLngLat(coords);
+        const elDist = document.getElementById("probe-badge-dist");
+        const elElev = document.getElementById("probe-badge-elev");
+        if (elDist) elDist.innerText = `${distKm} km`;
+        if (elElev) elElev.innerText = `${elevM} m`;
+    }
+
+    const markerEl = appState.profileProbeMarker.getElement();
+    if (markerEl) {
+        markerEl.style.display = "flex";
+    }
+
+    // Centrar suavemente en el punto de muestreo si está fuera o en los bordes del mapa
+    const drawer = document.getElementById("profile-chart-drawer");
+    const isDrawerOpen = drawer && !drawer.classList.contains("collapsed");
+    const offsetY = isDrawerOpen ? -Math.round(window.innerHeight * 0.12) : 0;
+
+    const canvas = map.getCanvas();
+    const dpr = window.devicePixelRatio || 1;
+    const pointPos = map.project(coords);
+    const margin = 60;
+    const bottomCutoff = (canvas.height / dpr) - (isDrawerOpen ? 240 : margin);
+    const isOutside = pointPos.x < margin || pointPos.x > ((canvas.width / dpr) - margin) ||
+                      pointPos.y < margin || pointPos.y > bottomCutoff;
+
+    if (isOutside) {
+        map.easeTo({
+            center: coords,
+            offset: [0, offsetY],
+            duration: 350,
+            easing: (t) => t
+        });
+    }
+}
+
+/**
+ * Oculta el marcador del punto de muestreo en el mapa.
+ */
+function hideProfileProbeFromMap() {
+    if (appState.profileProbeMarker) {
+        const markerEl = appState.profileProbeMarker.getElement();
+        if (markerEl) {
+            markerEl.style.display = "none";
+        }
+    }
+}
+
+/**
+ * Permite seleccionar el punto de muestreo haciendo clic directamente sobre la ruta en el mapa.
+ * Sincroniza la gráfica, el tooltip y el marcador de muestreo.
+ * @param {[number, number] | { lng: number, lat: number }} lngLat
+ */
+function handleRouteClick(lngLat) {
+    if (!appState.animData || !appState.animData.frames || !appState.animData.frames.length) return;
+
+    const clickLng = lngLat.lng !== undefined ? lngLat.lng : lngLat[0];
+    const clickLat = lngLat.lat !== undefined ? lngLat.lat : lngLat[1];
+    const frames = appState.animData.frames;
+
+    // Encontrar el frame más cercano a las coordenadas del clic
+    let closestIndex = 0;
+    let minDistanceSq = Infinity;
+
+    for (let i = 0; i < frames.length; i++) {
+        const [fLng, fLat] = frames[i].coords;
+        const dx = (fLng - clickLng) * Math.cos((clickLat * Math.PI) / 180);
+        const dy = fLat - clickLat;
+        const dSq = dx * dx + dy * dy;
+        if (dSq < minDistanceSq) {
+            minDistanceSq = dSq;
+            closestIndex = i;
+        }
+    }
+
+    const frame = frames[closestIndex];
+    const p = { frame, index: closestIndex };
+
+    // Mostrar el punto de muestreo en el mapa
+    showProfileProbeOnMap(p);
+
+    // Actualizar aguja en las gráficas
+    updateProfileNeedle(closestIndex);
+
+    // Actualizar campo visual e isovista en el mapa
+    renderAnimationFrame(closestIndex, false);
+
+    // Si el drawer de perfiles está abierto, sincronizar el tooltip flotante de la gráfica
+    const tooltip = document.getElementById("profile-tooltip");
+    const container = document.getElementById("profile-chart-container-iso") || document.getElementById("profile-chart-container-elev");
+    if (tooltip && container) {
+        const rect = container.getBoundingClientRect();
+        const fraction = closestIndex / (frames.length - 1);
+        const relX = fraction * rect.width;
+
+        tooltip.classList.remove("hidden");
+        tooltip.style.left = `${relX}px`;
+
+        const ptDist = document.getElementById("pt-dist");
+        const ptArea = document.getElementById("pt-area");
+        const ptElev = document.getElementById("pt-elev");
+        const ptHito = document.getElementById("pt-hito");
+
+        if (ptDist) ptDist.innerText = `${(frame.dist_m / 1000).toFixed(2)} km (${frame.pct.toFixed(0)}%)`;
+        if (ptArea) ptArea.innerHTML = `<svg class="ui-icon" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg> ${frame.area_m2.toLocaleString()} m²`;
+        if (ptElev) ptElev.innerHTML = `<svg class="ui-icon" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m8 3 4 8 5-5 5 15H2L8 3z"/></svg> ${frame.elev_m !== undefined ? frame.elev_m.toFixed(1) : '--'} msnm`;
+        if (ptHito) {
+            ptHito.innerHTML = frame.hito ? `<svg class="ui-icon" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg> ${frame.hito.nombre}` : "";
+        }
+    }
+}
+
+/**
  * Configura la interactividad unificada sobre ambos contenedores de perfiles.
  * El tooltip/popup se muestra ÚNICAMENTE cuando el usuario hace clic o arrastra sobre las gráficas.
  */
@@ -3462,6 +3628,7 @@ function setupDualProfileInteractivity(points, total) {
         btnClose.addEventListener("click", (e) => {
             e.stopPropagation();
             if (tooltip) tooltip.classList.add("hidden");
+            hideProfileProbeFromMap();
         });
     }
 
@@ -3483,6 +3650,9 @@ function setupDualProfileInteractivity(points, total) {
                 ptHito.innerHTML = p.frame.hito ? `<svg class="ui-icon" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg> ${p.frame.hito.nombre}` : "";
             }
         }
+
+        // Mostrar el punto de muestreo exacto en el mapa
+        showProfileProbeOnMap(p);
 
         if (jumpMap) {
             if (appState.animPlaying) pauseAnimation();
@@ -3535,8 +3705,9 @@ function setupDualProfileInteractivity(points, total) {
 
     // Ocultar el popup al hacer clic fuera del área de las gráficas
     document.addEventListener("click", (e) => {
-        if (!e.target.closest(".profile-chart-container") && !e.target.closest("#profile-tooltip") && !e.target.closest(".btn-profile-tab")) {
+        if (!e.target.closest(".profile-chart-container") && !e.target.closest("#profile-tooltip") && !e.target.closest(".btn-profile-tab") && !e.target.closest("#btn-toggle-profile-panel")) {
             if (tooltip) tooltip.classList.add("hidden");
+            hideProfileProbeFromMap();
         }
     });
 }

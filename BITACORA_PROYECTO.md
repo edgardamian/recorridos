@@ -176,3 +176,12 @@ ight, 	op, etc.), la etiqueta de texto flotante se proyectaba fuera del área de
 eferencias-active-label se filtra explícitamente a __none__, evitando que se renderice texto flotante duplicado cuando el popup ya muestra el nombre, número de hito y coordenadas completas.
         2. Si la capa maestra de nombres (
 eferencias-labels) está encendida globalmente por el usuario, se filtra para ocultar la etiqueta del hito activo (!= fid), restaurándose al cerrar el popup (close).
+   9. **Interacción Bidireccional Gráficas-Mapa con Marcador del Punto de Muestreo**:
+      - **Objetivo**: Mostrar en el mapa de forma inmediata y clara el punto geográfico exacto donde se registra el dato al interactuar con las gráficas de perfil (Isovistas y Altitud).
+      - **Marcador de Muestreo Dinámico (.probe-marker-container)**:
+        1. Compuesto por un halo radial pulsante gradiente cian-esmeralda (#38bdf8 a #10b981), núcleo vibrante con borde blanco y una insignia flotante estilizada (.probe-badge-pill) que exhibe la distancia en km y la cota topográfica en msnm en tiempo real a 60 fps.
+        2. Al hacer clic o arrastrar en cualquiera de las gráficas, el punto se sitúa en las coordenadas exactas del fotograma muestreado, se proyecta su cuenca visual (isovista) sobre el mapa y la cámara se encuadra suavemente con compensación vertical para no quedar oculto bajo el cajón de perfiles.
+        3. **Interacción Inversa desde la Ruta**: Al hacer clic en cualquier sección de la línea de ruta (
+uta-line y 
+uta-halo) en el mapa, se detecta el fotograma más cercano, se posiciona el marcador de muestreo y se sincronizan las agujas y el tooltip de las gráficas duales.
+        4. Al cerrar el tooltip (✕) o replegar el panel de perfiles, el marcador de muestreo se oculta limpiamente.
