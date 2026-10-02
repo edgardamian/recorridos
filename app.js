@@ -50,6 +50,8 @@ const appState = {
     observerMarker: null,         // Marcador HTML del observador en el mapa
     prebuiltFeatures: [],         // Features GeoJSON precalculadas para 60fps constantes
     animTimer: null,              // Temporizador del bucle de animación
+    animLandmarkWindows: [],      // Array precalculado de hitos activos por cada fotograma
+    animActiveFids: [],           // Array de FIDs de hitos activos en el fotograma actual
     // Estado de las herramientas de medición interactiva
     measure: {
         active: false,             // ¿Herramienta de medición activa?
@@ -1813,6 +1815,9 @@ function setupAnimation() {
         }
     }));
 
+    // Precalcular las ventanas de proximidad de cada hito para encendido y apagado dinámico al pasar
+    computeLandmarkAnimationWindows();
+
     // Configurar el slider con los límites máximos
     const slider = document.getElementById("anim-slider");
     if (slider) {
@@ -1847,6 +1852,144 @@ function setupAnimation() {
     // Inicializar HUD de telemetría y controles (los polígonos de animación se despliegan al abrir)
     updateAnimationHUD(firstFrame, total);
     updateCamModeUI(false);
+}
+
+/**
+ * Precalcula para cada fotograma de la animación los hitos por donde pasa el observador.
+ * Ejecutado una sola vez al inicio para garantizar 0 ms de sobrecarga y 60+ FPS continuos.
+ */
+function computeLandmarkAnimationWindows() {
+    if (!appState.animData || !appState.animData.frames || !appState.landmarksData || !appState.landmarksData.length) {
+        return;
+    }
+
+    const frames = appState.animData.frames;
+    const landmarks = appState.landmarksData;
+
+    // 1. Calcular distancia mínima de cada hito a cualquier punto del recorrido
+    const landmarkMinDists = {};
+    landmarks.forEach(feat => {
+        const fid = String(feat.properties.fid);
+        const [lLng, lLat] = feat.geometry.coordinates;
+        let minD = Infinity;
+
+        for (let i = 0; i < frames.length; i++) {
+            const [fLng, fLat] = frames[i].coords;
+            const dLat = (fLat - lLat) * Math.PI / 180;
+            const dLng = (fLng - lLng) * Math.PI / 180;
+            const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                      Math.cos(lLat * Math.PI / 180) * Math.cos(fLat * Math.PI / 180) *
+                      Math.sin(dLng / 2) * Math.sin(dLng / 2);
+            const dist = 12742000 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+            if (dist < minD) minD = dist;
+        }
+        landmarkMinDists[fid] = minD;
+    });
+
+    // 2. Precalcular para cada fotograma la lista de hitos en tránsito (dentro del umbral)
+    const frameActiveFids = new Array(frames.length);
+
+    for (let i = 0; i < frames.length; i++) {
+        const [fLng, fLat] = frames[i].coords;
+        const activeFids = [];
+
+        landmarks.forEach(feat => {
+            const fid = String(feat.properties.fid);
+            const [lLng, lLat] = feat.geometry.coordinates;
+            const minD = landmarkMinDists[fid] || 25;
+            // Umbral dinámico calibrado según la distancia del hito al eje de la calle
+            const threshold = Math.min(Math.max(55.0, minD + 25.0), 105.0);
+
+            const dLat = (fLat - lLat) * Math.PI / 180;
+            const dLng = (fLng - lLng) * Math.PI / 180;
+            const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                      Math.cos(lLat * Math.PI / 180) * Math.cos(fLat * Math.PI / 180) *
+                      Math.sin(dLng / 2) * Math.sin(dLng / 2);
+            const dist = 12742000 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+            if (dist <= threshold) {
+                activeFids.push(fid);
+            }
+        });
+
+        frameActiveFids[i] = activeFids;
+    }
+
+    appState.animLandmarkWindows = frameActiveFids;
+}
+
+/**
+ * Enciende el halo y la etiqueta del hito o hitos por donde va pasando el observador en la animación,
+ * y los apaga inmediatamente una vez que los pasa.
+ * @param {number} frameIndex - Índice del fotograma actual
+ */
+function syncAnimatedLandmarks(frameIndex) {
+    if (!appState.animLandmarkWindows || !appState.animLandmarkWindows[frameIndex]) return;
+
+    const currentActiveFids = appState.animLandmarkWindows[frameIndex];
+    const prevActiveFids = appState.animActiveFids || [];
+
+    // Comprobar si hubo cambio respecto al fotograma anterior para evitar llamadas innecesarias a setFilter
+    const hasChanged = currentActiveFids.length !== prevActiveFids.length ||
+        currentActiveFids.some((fid, idx) => fid !== prevActiveFids[idx]);
+
+    if (!hasChanged) return;
+
+    appState.animActiveFids = currentActiveFids.slice();
+
+    // 1. Construir la expresión de filtro MapLibre para el halo y etiqueta activa
+    let filterExpr;
+    if (currentActiveFids.length === 0) {
+        filterExpr = ["==", ["to-string", ["coalesce", ["get", "fid"], ""]], "__none__"];
+    } else if (currentActiveFids.length === 1) {
+        filterExpr = ["==", ["to-string", ["coalesce", ["get", "fid"], ""]], String(currentActiveFids[0])];
+    } else {
+        filterExpr = ["any", ...currentActiveFids.map(f => ["==", ["to-string", ["coalesce", ["get", "fid"], ""]], String(f)])];
+    }
+
+    // 2. Aplicar el filtro a las capas nativas de resalte en WebGL
+    if (map && map.getLayer("referencias-active-glow")) {
+        map.setFilter("referencias-active-glow", filterExpr);
+    }
+    if (map && map.getLayer("referencias-active-label")) {
+        map.setFilter("referencias-active-label", filterExpr);
+    }
+
+    // 3. Sincronizar el estado visual en la lista lateral de hitos
+    document.querySelectorAll(".landmark-list-item").forEach(item => {
+        const itemFid = String(item.dataset.fid);
+        if (currentActiveFids.includes(itemFid)) {
+            item.classList.add("active");
+        } else {
+            item.classList.remove("active");
+        }
+    });
+
+    // 4. Si la animación está reproduciéndose y hay un hito activo, enfocarlo suavemente en la lista lateral
+    if (appState.animPlaying && currentActiveFids.length > 0) {
+        const activeElem = document.querySelector(`.landmark-list-item[data-fid="${currentActiveFids[0]}"]`);
+        if (activeElem) {
+            activeElem.scrollIntoView({ behavior: "smooth", block: "nearest" });
+        }
+    }
+}
+
+/**
+ * Apaga el resalte de hitos animados (halo y etiqueta).
+ */
+function clearAnimatedLandmarks() {
+    appState.animActiveFids = [];
+    appState.activeLandmarkFid = null;
+    const filterNone = ["==", ["to-string", ["coalesce", ["get", "fid"], ""]], "__none__"];
+    if (map && map.getLayer("referencias-active-glow")) {
+        map.setFilter("referencias-active-glow", filterNone);
+    }
+    if (map && map.getLayer("referencias-active-label")) {
+        map.setFilter("referencias-active-label", filterNone);
+    }
+    document.querySelectorAll(".landmark-list-item").forEach(item => {
+        item.classList.remove("active");
+    });
 }
 
 /**
@@ -1950,10 +2093,13 @@ function renderAnimationFrame(frameIndex, isUserScrubbing = false) {
         }
     }
 
-    // 5. Actualizar telemetría HUD y Scrubber Slider
+    // 5. Encender dinámicamente el halo y la etiqueta de los hitos por donde va pasando el observador (y apagar los pasados)
+    syncAnimatedLandmarks(frameIndex);
+
+    // 6. Actualizar telemetría HUD y Scrubber Slider
     updateAnimationHUD(frame, total);
 
-    // 6. Sincronizar la aguja del perfil de apertura visual
+    // 7. Sincronizar la aguja del perfil de apertura visual
     updateProfileNeedle(frameIndex);
 }
 
@@ -1980,7 +2126,20 @@ function updateAnimationHUD(frame, total) {
 
     const elHito = document.getElementById("anim-hito-val");
     if (elHito) {
-        if (frame.hito) {
+        const activeFids = appState.animActiveFids || [];
+        if (activeFids.length > 0) {
+            const activeNames = [];
+            if (appState.landmarksData) {
+                appState.landmarksData.forEach(f => {
+                    if (activeFids.includes(String(f.properties.fid))) {
+                        activeNames.push(f.properties.nombre);
+                    }
+                });
+            }
+            const labelText = activeNames.join(", ") || (frame.hito ? frame.hito.nombre : "Hito");
+            elHito.innerHTML = `<span style="color:#fbbf24; font-weight:700;">★ ${labelText}</span>`;
+            elHito.title = `Hito en tránsito: ${labelText}`;
+        } else if (frame.hito) {
             const hitoText = `${frame.hito.nombre} (a ${frame.hito.dist_m.toFixed(0)} m)`;
             elHito.innerText = hitoText;
             elHito.title = hitoText;
@@ -2182,10 +2341,11 @@ function toggleAnimationPlayer(forceState) {
         if (bar) bar.classList.add("hidden");
         if (pill) pill.classList.remove("active");
 
-        // 2. Si estaba reproduciéndose, pausar
+        // 2. Si estaba reproduciéndose, pausar y apagar cualquier hito activo de la animación
         if (appState.animPlaying) {
             pauseAnimation();
         }
+        clearAnimatedLandmarks();
 
         // 3. Ocultar el marcador del observador
         if (appState.observerMarker) {
