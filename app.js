@@ -3378,6 +3378,9 @@ function setProfileTab(tab) {
     const blockIso = document.getElementById("block-profile-iso");
     const blockElev = document.getElementById("block-profile-elev");
 
+    const drawer = document.getElementById("profile-chart-drawer");
+    if (drawer) drawer.setAttribute("data-view", tab);
+
     if (tabBoth) tabBoth.classList.toggle("active", tab === "both");
     if (tabIso) tabIso.classList.toggle("active", tab === "iso");
     if (tabElev) tabElev.classList.toggle("active", tab === "elev");
