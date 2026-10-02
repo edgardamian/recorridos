@@ -843,7 +843,7 @@ input:checked + .slider:before {
 }
 
 .landmarks-list-container {
-    max-height: 220px;
+    max-height: 154px; /* Muestra entre 5 y 6 hitos antes de scrolear, evitando que se corte el botón inferior */
     overflow-y: auto;
     border: 1px solid var(--border-subtle);
     border-radius: 8px;
