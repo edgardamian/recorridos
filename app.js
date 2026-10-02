@@ -3310,6 +3310,38 @@ function toggleProfileDrawer(forceState) {
         const tooltip = document.getElementById("profile-tooltip");
         if (tooltip) tooltip.classList.add("hidden");
         hideProfileProbeFromMap();
+
+        // Al cerrar perfiles (si la animación no está visible), comportarse exactamente igual
+        // que la herramienta de animación: pausar, limpiar elementos temporales y dejar solo las capas activas
+        if (!appState.animPlayerVisible) {
+            if (appState.animPlaying) {
+                pauseAnimation();
+            }
+            clearAnimatedLandmarks();
+
+            // Ocultar marcador del observador
+            if (appState.observerMarker) {
+                appState.observerMarker.getElement().style.display = "none";
+            }
+
+            // Limpiar polígonos de animación/isovistas del mapa para restaurar vista limpia
+            if (map.getSource("anim_actual_src")) {
+                map.getSource("anim_actual_src").setData({ type: "FeatureCollection", features: [] });
+            }
+            if (map.getSource("anim_acum_src")) {
+                map.getSource("anim_acum_src").setData({ type: "FeatureCollection", features: [] });
+            }
+
+            // Restaurar la envolvente estática si su checkbox está seleccionado
+            const chkEnv = document.getElementById("chk-envolvente");
+            const envVis = (!chkEnv || chkEnv.checked) ? "visible" : "none";
+            if (map.getLayer("envolvente-fill")) {
+                map.setLayoutProperty("envolvente-fill", "visibility", envVis);
+                map.setLayoutProperty("envolvente-line", "visibility", envVis);
+            }
+
+            updatePlayButtonUI(false);
+        }
     }
 }
 

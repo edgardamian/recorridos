@@ -194,3 +194,6 @@ uta-halo) en el mapa, se detecta el fotograma más cercano, se posiciona el marc
        - **Minimización Mutua entre Animación y Perfiles**:
          1. Si la barra flotante de animación está activa y se abre el panel de perfiles (#profile-chart-drawer), la animación se minimiza limpiamente de forma automática.
          2. Si el panel de perfiles está abierto y el usuario despliega la barra de animación (#anim-player-bar / #btn-anim-pill-launcher), el cajón de perfiles se repliega automáticamente, previniendo cualquier colisión o doble barra inferior.
+   12. **Reordenamiento de Capas y Limpieza Completa al Cerrar Perfiles**:
+       - **Reordenamiento del Control de Capas**: 'Puntos de Referencia' se reposicionó inmediatamente debajo de 'Ruta Peatonal' (seguido por Punto de Inicio y Punto de Fin) para una lectura temática coherente del trazado y sus hitos urbanos.
+       - **Comportamiento Homologado al Cerrar Perfiles**: Al cerrar o replegar el cajón de perfiles (#profile-chart-drawer), se ejecuta la misma limpieza integral que en la barra de animación: se pausa el avance, se oculta el observador, se limpian las isovistas dinámicas (actual y acumuladas), se restablece la envolvente estática (si su capa está activa) y se dejan en pantalla únicamente las capas seleccionadas por el usuario.
