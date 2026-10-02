@@ -261,15 +261,63 @@ html, body {
     filter: invert(1) brightness(0.9) !important;
 }
 
+/* Control de escala métrica estilizado para modo oscuro en esquina inferior derecha */
+.maplibregl-ctrl-scale {
+    background: rgba(15, 23, 42, 0.88) !important;
+    backdrop-filter: blur(12px) !important;
+    -webkit-backdrop-filter: blur(12px) !important;
+    border: 1px solid var(--border-subtle) !important;
+    border-top: none !important;
+    color: #94a3b8 !important;
+    font-size: 10px !important;
+    font-weight: 700 !important;
+    border-radius: 0 0 6px 6px !important;
+    padding: 1px 7px !important;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.6) !important;
+}
+
+/* Botones personalizados con un solo icono al estilo nativo de MapLibre */
+.maplibregl-ctrl-group button.btn-ctrl-custom {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 29px !important;
+    height: 29px !important;
+    background: transparent !important;
+    border: none !important;
+    cursor: pointer !important;
+    color: #94a3b8 !important;
+    transition: var(--transition-fast) !important;
+    padding: 0 !important;
+    box-sizing: border-box !important;
+}
+
+.maplibregl-ctrl-group button.btn-ctrl-custom:hover {
+    background: rgba(255, 255, 255, 0.15) !important;
+    color: #ffffff !important;
+}
+
+.maplibregl-ctrl-group button.btn-ctrl-custom.active {
+    background: rgba(56, 189, 248, 0.25) !important;
+    color: #38bdf8 !important;
+    box-shadow: inset 0 0 10px rgba(56, 189, 248, 0.4) !important;
+}
+
+.maplibregl-ctrl-group button.btn-ctrl-custom svg {
+    display: block !important;
+    pointer-events: none !important;
+    stroke: currentColor !important;
+}
+
 /* --------------------------------------------------------------------------
-   6. PANEL LATERAL DERECHO (CONTROL GENERAL, CAPAS Y CONFIGURACIÓN)
+   6. PANEL LATERAL DERECHO (EXPLORACIÓN Y CAPAS)
    -------------------------------------------------------------------------- */
 #main-panel {
     position: absolute;
-    top: 16px;
-    right: 16px;
+    top: 10px;
+    right: 12px;
     width: 336px;
-    max-height: calc(100vh - 32px);
+    max-height: calc(100vh - 24px);
     background: var(--panel-bg);
     backdrop-filter: blur(18px);
     -webkit-backdrop-filter: blur(18px);
@@ -288,7 +336,52 @@ html, body {
     display: none;
 }
 #main-panel.collapsed {
-    width: 280px;
+    width: 130px;
+}
+#main-panel.collapsed .panel-title p {
+    display: none;
+}
+
+/* --------------------------------------------------------------------------
+   6.1 BARRA SECUNDARIA DE HERRAMIENTAS 3D, MEDICIÓN Y ANÁLISIS (IZQUIERDA)
+   -------------------------------------------------------------------------- */
+#tools-panel {
+    position: absolute;
+    top: 10px;
+    left: 48px;
+    width: 324px;
+    max-height: calc(100vh - 20px);
+    background: var(--panel-bg);
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+    border: 1px solid var(--border-subtle);
+    border-radius: 16px;
+    box-shadow: var(--shadow-main);
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    user-select: none;
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease;
+}
+
+#tools-panel.hidden {
+    opacity: 0;
+    pointer-events: none;
+    transform: translateX(-24px);
+    visibility: hidden;
+}
+
+.tools-panel-header {
+    background: rgba(15, 23, 42, 0.6);
+    border-bottom: 1px solid rgba(56, 189, 248, 0.2);
+}
+
+.tools-panel-header .panel-title h2 {
+    color: #38bdf8;
+    display: flex;
+    align-items: center;
+    gap: 6px;
 }
 
 .panel-header {
@@ -457,6 +550,42 @@ html, body {
 
 .badge-point {
     border-radius: 50%;
+}
+
+.legend-badge-terminal {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 2.5px;
+    width: 14px;
+    height: 14px;
+    flex-shrink: 0;
+}
+
+.legend-dot-start {
+    width: 5.5px;
+    height: 5.5px;
+    border-radius: 50%;
+    background: var(--color-start);
+    box-shadow: 0 0 5px var(--color-start);
+}
+
+.legend-dot-end {
+    width: 5.5px;
+    height: 5.5px;
+    border-radius: 50%;
+    background: var(--color-end);
+    box-shadow: 0 0 5px var(--color-end);
+}
+
+.marker-start-end {
+    cursor: pointer;
+    transition: transform var(--transition-fast), filter var(--transition-fast);
+}
+
+.marker-start-end:hover {
+    transform: scale(1.2);
+    filter: brightness(1.2);
 }
 
 .badge-icon {
@@ -634,7 +763,7 @@ input:checked + .slider:before {
 }
 
 .landmarks-list-container {
-    max-height: 160px;
+    max-height: 220px;
     overflow-y: auto;
     border: 1px solid var(--border-subtle);
     border-radius: 8px;
@@ -750,26 +879,7 @@ input:checked + .slider:before {
     color: var(--text-primary) !important;
 }
 
-/* --------------------------------------------------------------------------
-   15. DISEÑO RESPONSIVO (MÓVILES Y PANTALLAS PEQUEÑAS)
-   -------------------------------------------------------------------------- */
-@media (max-width: 768px) {
-    .top-header-pill {
-        top: 10px;
-        padding: 6px 14px;
-    }
-    .top-header-pill h1 {
-        font-size: 12px;
-    }
-    #main-panel {
-        top: auto;
-        bottom: 12px;
-        right: 12px;
-        left: 12px;
-        width: auto;
-        max-height: 48vh;
-    }
-}
+
 
 /* --------------------------------------------------------------------------
    16. SELECTOR DE MAPA BASE Y SLIDERS DE EXAGERACIÓN
@@ -912,65 +1022,7 @@ input:checked + .slider:before {
     box-shadow: 0 0 12px rgba(56, 189, 248, 0.3);
 }
 
-/* --------------------------------------------------------------------------
-   16. BOTÓN FLOTANTE MINIMIZADO DE ANIMACIÓN (PILL LAUNCHER)
-   -------------------------------------------------------------------------- */
-.anim-pill-launcher {
-    position: absolute;
-    bottom: 22px;
-    left: 50%;
-    transform: translateX(-50%);
-    z-index: 999;
-    display: inline-flex;
-    align-items: center;
-    gap: 9px;
-    padding: 8px 16px;
-    background: rgba(15, 23, 42, 0.92);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
-    border: 1px solid rgba(56, 189, 248, 0.45);
-    border-radius: 30px;
-    color: #f8fafc;
-    font-size: 12px;
-    font-weight: 700;
-    cursor: pointer;
-    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.7), 0 0 18px rgba(56, 189, 248, 0.25);
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    user-select: none;
-}
 
-.anim-pill-launcher:hover {
-    background: rgba(30, 41, 59, 0.96);
-    border-color: #38bdf8;
-    transform: translateX(-50%) translateY(-2px);
-    box-shadow: 0 14px 30px rgba(0, 0, 0, 0.8), 0 0 25px rgba(56, 189, 248, 0.45);
-}
-
-.anim-pill-launcher.hidden {
-    opacity: 0;
-    pointer-events: none;
-    transform: translateX(-50%) translateY(30px);
-}
-
-.anim-pill-launcher .pill-icon {
-    font-size: 14px;
-}
-
-.anim-pill-launcher .pill-text {
-    letter-spacing: 0.02em;
-}
-
-.anim-pill-launcher .pill-badge {
-    background: rgba(56, 189, 248, 0.2);
-    border: 1px solid #38bdf8;
-    color: #38bdf8;
-    font-size: 9.5px;
-    font-weight: 700;
-    padding: 2px 7px;
-    border-radius: 12px;
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
-}
 
 /* Contenedor Flotante Principal de Animación (Abajo al Centro) */
 .anim-player-floating {
@@ -2194,5 +2246,130 @@ body.measuring-active .maplibregl-canvas {
     opacity: 0;
     transform: translate(-50%, 15px);
 }
+
+/* --------------------------------------------------------------------------
+   17. REGLAS RESPONSIVAS ANTICOLISIÓN PARA DISPOSITIVOS MÓVILES
+   -------------------------------------------------------------------------- */
+@media (max-width: 768px) {
+    /* Encabezado superior compacto y centrado */
+    .top-header-pill {
+        top: 8px;
+        left: 50%;
+        transform: translateX(-50%);
+        padding: 5px 14px;
+        max-width: calc(100vw - 80px);
+        z-index: 999;
+        gap: 8px;
+    }
+    .top-header-pill h1 {
+        font-size: 11.5px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    .btn-pill-snapshot {
+        width: 22px;
+        height: 22px;
+        padding: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    /* Panel de Capas: reubicado verticalmente a top: 48px para NUNCA encimarse con el encabezado */
+    #main-panel {
+        top: 48px;
+        right: 8px;
+        bottom: auto;
+        left: auto;
+        width: min(310px, calc(100vw - 16px));
+        max-height: calc(100vh - 60px);
+        z-index: 1000;
+    }
+    #main-panel.collapsed {
+        width: auto;
+        max-width: 120px;
+    }
+    #main-panel.collapsed .panel-header {
+        padding: 5px 10px;
+    }
+    #main-panel.collapsed .panel-title h2 {
+        font-size: 12px;
+    }
+    #main-panel.collapsed .panel-title p {
+        display: none;
+    }
+    #main-panel.collapsed .btn-toggle-panel {
+        width: 22px;
+        height: 22px;
+        font-size: 13px;
+        margin-left: 6px;
+    }
+
+    /* Panel de Herramientas de Análisis: abre también debajo del encabezado en top: 48px */
+    #tools-panel {
+        top: 48px;
+        left: 8px;
+        right: 8px;
+        width: calc(100vw - 16px);
+        max-height: calc(100vh - 60px);
+        z-index: 1002;
+    }
+
+    /* Barra flotante de animación: se eleva a bottom: 46px para NO encimarse con el botón de play ni con la escala */
+    .anim-player-floating {
+        width: calc(100vw - 16px) !important;
+        bottom: 46px !important;
+        left: 50% !important;
+        transform: translateX(-50%) !important;
+        padding: 8px 10px !important;
+    }
+    .anim-telemetry-row {
+        gap: 4px !important;
+    }
+    .anim-telemetry-chip {
+        padding: 2px 6px !important;
+        font-size: 9.5px !important;
+    }
+    .anim-controls-row {
+        gap: 6px !important;
+        flex-wrap: wrap !important;
+        justify-content: center !important;
+    }
+
+    /* Cajón de perfil analítico */
+    .profile-chart-drawer {
+        max-height: 48vh !important;
+        padding: 8px 10px !important;
+    }
+
+    /* HUD de medición */
+    .measure-hud {
+        top: 48px !important;
+        width: calc(100vw - 16px) !important;
+        max-width: 340px !important;
+    }
+}
+
+@media (max-width: 480px) {
+    .top-header-pill {
+        max-width: calc(100vw - 70px);
+        padding: 4px 10px;
+    }
+    .top-header-pill h1 {
+        font-size: 11px;
+    }
+    #main-panel {
+        width: calc(100vw - 16px);
+        right: 8px;
+    }
+    #tools-panel {
+        left: 8px;
+        right: 8px;
+        width: calc(100vw - 16px);
+    }
+}
+
+
 
 

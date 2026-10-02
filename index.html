@@ -33,7 +33,6 @@
     <!-- 3. Encabezado Flotante Superior (Pill Banner) -->
     <header class="top-header-pill">
         <h1>Corredor Norte-Sur Morelia</h1>
-        <span class="pill-badge">Isovistas 2D / 3D</span>
         <button type="button" class="btn-pill-snapshot" id="btn-header-snapshot" title="Captura rápida en PNG">
             <svg class="ui-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
         </button>
@@ -78,13 +77,13 @@
     </div>
 
 
-    <!-- 5. Panel Lateral Flotante de Control (Derecha) -->
+    <!-- 5. Panel Lateral Flotante de Exploración y Capas (Barra 1 - Derecha) -->
     <aside id="main-panel">
         
         <!-- Encabezado del Panel -->
         <div class="panel-header">
             <div class="panel-title">
-                <h2>Isovistas y Relieve</h2>
+                <h2>Capas</h2>
                 <p>Morelia Norte-Sur • IMPLAN</p>
             </div>
             <button class="btn-toggle-panel" id="btn-toggle-panel" title="Minimizar panel">−</button>
@@ -113,7 +112,7 @@
                 </div>
             </div>
 
-            <!-- SECCIÓN 0: MAPA BASE -->
+            <!-- SECCIÓN: MAPA BASE -->
             <div class="section-title">
                 <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"></path></svg>
                 Mapa Base
@@ -127,7 +126,125 @@
                 </button>
             </div>
 
-            <!-- SECCIÓN 1: MODOS Y VISUALIZACIÓN 3D -->
+            <!-- SECCIÓN: CONTROL DE CAPAS VECTORIALES -->
+            <div class="section-title">
+                <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
+                Capas del Estudio
+            </div>
+
+            <!-- Envolvente Visual -->
+            <div class="control-item" onclick="document.getElementById('chk-envolvente').click()">
+                <div class="item-info">
+                    <div class="legend-badge" style="background: rgba(239, 68, 68, 0.6); border: 1px solid #f87171;"></div>
+                    <span>Envolvente Visual (28.1 ha)</span>
+                </div>
+                <label class="switch" onclick="event.stopPropagation()">
+                    <input type="checkbox" id="chk-envolvente" checked>
+                    <span class="slider red"></span>
+                </label>
+            </div>
+
+            <!-- Ruta Peatonal -->
+            <div class="control-item" onclick="document.getElementById('chk-ruta').click()">
+                <div class="item-info">
+                    <div class="legend-badge" style="background:#38bdf8; box-shadow: 0 0 8px rgba(56, 189, 248, 0.6);"></div>
+                    <span>Ruta Peatonal (4.7 km)</span>
+                </div>
+                <label class="switch" onclick="event.stopPropagation()">
+                    <input type="checkbox" id="chk-ruta" checked>
+                    <span class="slider"></span>
+                </label>
+            </div>
+
+            <!-- Puntos de Inicio y Fin -->
+            <div class="control-item" onclick="document.getElementById('chk-inicio-fin').click()">
+                <div class="item-info">
+                    <div class="legend-badge-terminal">
+                        <span class="legend-dot-start"></span>
+                        <span class="legend-dot-end"></span>
+                    </div>
+                    <span>Puntos Inicio y Fin</span>
+                </div>
+                <label class="switch" onclick="event.stopPropagation()">
+                    <input type="checkbox" id="chk-inicio-fin" checked>
+                    <span class="slider emerald"></span>
+                </label>
+            </div>
+
+            <!-- Edificaciones Urbanas (2D) -->
+            <div class="control-item" onclick="document.getElementById('chk-edificios').click()">
+                <div class="item-info">
+                    <div class="legend-badge" style="background:#1e293b; border: 1px solid #475569;"></div>
+                    <span>Edificaciones Urbanas</span>
+                </div>
+                <label class="switch" onclick="event.stopPropagation()">
+                    <input type="checkbox" id="chk-edificios" checked>
+                    <span class="slider"></span>
+                </label>
+            </div>
+
+            <!-- Puntos de Referencia -->
+            <div class="control-item" onclick="document.getElementById('chk-referencias').click()">
+                <div class="item-info">
+                    <div class="legend-badge badge-point" style="background:#fbbf24; border: 2px solid #0f172a;"></div>
+                    <span>Puntos de Referencia (26)</span>
+                </div>
+                <label class="switch" onclick="event.stopPropagation()">
+                    <input type="checkbox" id="chk-referencias" checked>
+                    <span class="slider amber"></span>
+                </label>
+            </div>
+
+            <!-- SECCIÓN: HITOS URBANOS Y BÚSQUEDA -->
+            <div class="section-title">
+                <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                Explorar Hitos Urbanos
+            </div>
+
+            <!-- Buscador en vivo de Hitos -->
+            <div class="landmarks-search-box">
+                <input type="text" id="input-search-landmarks" placeholder="Buscar hito por nombre o #..." autocomplete="off">
+            </div>
+
+            <!-- Lista interactiva de hitos con scroll -->
+            <div class="landmarks-list-container" id="landmarks-list">
+                <!-- Se llena dinámicamente con JavaScript -->
+            </div>
+
+            <!-- Botón para mostrar todos los nombres flotantes -->
+            <button class="btn-toggle-names" id="btn-toggle-names">
+                <svg class="ui-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg> Mostrar Nombres de Hitos (Off)
+            </button>
+
+        </div>
+    </aside>
+
+    <!-- 6. Control Minimalista: Herramientas de Análisis (Llave) (Se inserta en top-left debajo de pantalla completa) -->
+    <div id="ctrl-tools-group" class="maplibregl-ctrl maplibregl-ctrl-group">
+        <button type="button" class="btn-ctrl-custom" id="btn-tools-pill-launcher" title="Herramientas de Análisis y Medición">
+            <svg class="ui-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
+        </button>
+    </div>
+
+    <!-- 7. Barra / Panel Secundario de Herramientas de Análisis 3D y Medición (Minimizada por defecto) -->
+    <aside id="tools-panel" class="tools-panel hidden">
+        
+        <!-- Encabezado de la Barra de Herramientas -->
+        <div class="panel-header tools-panel-header">
+            <div class="panel-title">
+                <h2>
+                    <svg class="ui-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
+                    Herramientas de Análisis
+                </h2>
+                <p>Relieve 3D • Cámara • Medición • Captura</p>
+            </div>
+            <button class="btn-toggle-panel" id="btn-close-tools" title="Minimizar herramientas (Esc)">✕</button>
+        </div>
+
+        <!-- Contenido de Herramientas -->
+        <div class="panel-content tools-panel-content">
+            
+            <!-- SECCIÓN: VISUALIZACIÓN 3D Y RELIEVE -->
             <div class="section-title">
                 <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 10l-2 1m0 0l-2-1m2 1v2.5M20 7l-2 1m2-1l-2-1m2 1v2.5M14 4l-2-1-2 1M4 7l2-1M4 7l2 1M4 7v2.5M12 21l-2-1m2 1l2-1m-2 1v-2.5M6 18l-2-1v-2.5M18 18l2-1v-2.5"></path></svg>
                 Visualización 3D y Relieve
@@ -199,7 +316,7 @@
                 </div>
             </div>
 
-            <!-- Botones Rápidos de Perspectiva de Cámara -->
+            <!-- SECCIÓN: PERSPECTIVA DE CÁMARA -->
             <div class="section-title">
                 <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
                 Perspectiva de Cámara
@@ -215,60 +332,6 @@
             <button class="btn-cam-action" id="btn-cam-fit" style="width: 100%; margin-bottom: 12px;" title="Ajustar zoom a toda la ruta">
                 <svg class="ui-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><polyline points="21 15 21 21 15 21"/><polyline points="3 9 3 3 9 3"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg> Encuadrar Recorrido Completo
             </button>
-
-            <!-- SECCIÓN 2: CONTROL DE CAPAS VECTORIALES -->
-            <div class="section-title">
-                <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
-                Capas del Estudio
-            </div>
-
-            <!-- Envolvente Visual -->
-            <div class="control-item" onclick="document.getElementById('chk-envolvente').click()">
-                <div class="item-info">
-                    <div class="legend-badge" style="background: rgba(239, 68, 68, 0.6); border: 1px solid #f87171;"></div>
-                    <span>Envolvente Visual (28.1 ha)</span>
-                </div>
-                <label class="switch" onclick="event.stopPropagation()">
-                    <input type="checkbox" id="chk-envolvente" checked>
-                    <span class="slider red"></span>
-                </label>
-            </div>
-
-            <!-- Ruta Peatonal -->
-            <div class="control-item" onclick="document.getElementById('chk-ruta').click()">
-                <div class="item-info">
-                    <div class="legend-badge" style="background:#38bdf8; box-shadow: 0 0 8px rgba(56, 189, 248, 0.6);"></div>
-                    <span>Ruta Peatonal (4.7 km)</span>
-                </div>
-                <label class="switch" onclick="event.stopPropagation()">
-                    <input type="checkbox" id="chk-ruta" checked>
-                    <span class="slider"></span>
-                </label>
-            </div>
-
-            <!-- Edificaciones Urbanas (2D) -->
-            <div class="control-item" onclick="document.getElementById('chk-edificios').click()">
-                <div class="item-info">
-                    <div class="legend-badge" style="background:#1e293b; border: 1px solid #475569;"></div>
-                    <span>Edificaciones Urbanas</span>
-                </div>
-                <label class="switch" onclick="event.stopPropagation()">
-                    <input type="checkbox" id="chk-edificios" checked>
-                    <span class="slider"></span>
-                </label>
-            </div>
-
-            <!-- Puntos de Referencia -->
-            <div class="control-item" onclick="document.getElementById('chk-referencias').click()">
-                <div class="item-info">
-                    <div class="legend-badge badge-point" style="background:#fbbf24; border: 2px solid #0f172a;"></div>
-                    <span>Puntos de Referencia (26)</span>
-                </div>
-                <label class="switch" onclick="event.stopPropagation()">
-                    <input type="checkbox" id="chk-referencias" checked>
-                    <span class="slider amber"></span>
-                </label>
-            </div>
 
             <!-- SECCIÓN: HERRAMIENTAS DE MEDICIÓN -->
             <div class="section-title">
@@ -304,39 +367,7 @@
                 </div>
             </div>
 
-            <!-- SECCIÓN 3: HITOS URBANOS Y BÚSQUEDA -->
-            <div class="section-title">
-                <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
-                Explorar Hitos Urbanos
-            </div>
-
-            <!-- Buscador en vivo de Hitos -->
-            <div class="landmarks-search-box">
-                <input type="text" id="input-search-landmarks" placeholder="Buscar hito por nombre o #..." autocomplete="off">
-            </div>
-
-            <!-- Lista interactiva de hitos con scroll -->
-            <div class="landmarks-list-container" id="landmarks-list">
-                <!-- Se llena dinámicamente con JavaScript -->
-            </div>
-
-            <!-- Botón para mostrar todos los nombres flotantes -->
-            <button class="btn-toggle-names" id="btn-toggle-names">
-                <svg class="ui-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg> Mostrar Nombres de Hitos (Off)
-            </button>
-
-            <!-- SECCIÓN 4: ANIMACIÓN DE RECORRIDO E ISOVISTAS -->
-            <div class="section-title">
-                <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                Animación del Recorrido
-            </div>
-
-            <!-- Botón para alternar visibilidad de la barra de animación -->
-            <button class="btn-toggle-anim-bar" id="btn-toggle-anim-player" title="Mostrar u ocultar la barra flotante de animación">
-                <svg class="ui-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg> Activar Modo Animación
-            </button>
-
-            <!-- SECCIÓN 5: HERRAMIENTAS Y EXPORTACIÓN -->
+            <!-- SECCIÓN: UTILIDADES Y EXPORTACIÓN -->
             <div class="section-title">
                 <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
                 Utilidades y Exportación
@@ -353,12 +384,12 @@
         </div>
     </aside>
 
-    <!-- 6. Botón Flotante para Desplegar Animación (Visible cuando el reproductor está minimizado) -->
-    <button type="button" id="btn-anim-pill-launcher" class="anim-pill-launcher" title="Abrir controles de animación y explorar isovistas dinámicas">
-        <span class="pill-icon"><svg class="ui-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg></span>
-        <span class="pill-text">Animación del Recorrido</span>
-        <span class="pill-badge">Isovistas</span>
-    </button>
+    <!-- 8. Control Minimalista: Animación del Recorrido (Se inserta en bottom-left) -->
+    <div id="ctrl-anim-group" class="maplibregl-ctrl maplibregl-ctrl-group">
+        <button type="button" class="btn-ctrl-custom" id="btn-anim-pill-launcher" title="Animación del Recorrido e Isovistas">
+            <svg class="ui-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+        </button>
+    </div>
 
     <!-- 7. Barra Flotante de Control de Animación de Isovistas (Inicia minimizada por defecto) -->
     <div id="anim-player-bar" class="anim-player-floating hidden">

@@ -35,6 +35,7 @@ const appState = {
     landmarksLabelsVisible: false, // ¿Etiquetas de texto de hitos visibles?
     landmarksData: [],            // Almacén en memoria de puntos de referencia
     landmarkMarkers: [],          // Referencias a los marcadores HTML en el mapa
+    terminalMarkers: [],          // Referencias a los marcadores HTML de Inicio y Fin
     activeLandmarkFid: null,      // FID del hito actualmente seleccionado/activo
     activePopup: null,            // Instancia del popup activo actualmente en pantalla
     // Estado de la animación de isovistas
@@ -102,9 +103,23 @@ function initMap() {
     
     // Control de pantalla completa
     map.addControl(new maplibregl.FullscreenControl(), "top-left");
-    
-    // Control de escala métrica en la esquina inferior izquierda
-    map.addControl(new maplibregl.ScaleControl({ unit: "metric", maxWidth: 120 }), "bottom-left");
+
+    // Control minimalista de Herramientas 3D y Medición (justo debajo de maximizar pantalla)
+    const ctrlTools = {
+        onAdd: () => document.getElementById("ctrl-tools-group"),
+        onRemove: () => {}
+    };
+    map.addControl(ctrlTools, "top-left");
+
+    // Control minimalista de Animación del Recorrido (en esquina inferior izquierda)
+    const ctrlAnim = {
+        onAdd: () => document.getElementById("ctrl-anim-group"),
+        onRemove: () => {}
+    };
+    map.addControl(ctrlAnim, "bottom-left");
+
+    // Control de escala métrica en la esquina inferior derecha
+    map.addControl(new maplibregl.ScaleControl({ unit: "metric", maxWidth: 120 }), "bottom-right");
 
     // Cuando el mapa y los estilos base terminen de cargarse, procesar los datos
     map.on("load", async () => {
@@ -1222,23 +1237,32 @@ function showBuildingPopup(lngLat, props) {
 function setupStartEndMarkers(ptoInicio, ptoFin) {
     // Marcador de Inicio (Verde)
     const elInicio = document.createElement("div");
-    elInicio.className = "marker-start-end";
+    elInicio.className = "marker-start-end marker-start";
     elInicio.innerHTML = `<div style="width:14px; height:14px; background:#10b981; border:3px solid #0f172a; border-radius:50%; box-shadow:0 0 14px #10b981;"></div>`;
     
-    new maplibregl.Marker({ element: elInicio })
+    const markerInicio = new maplibregl.Marker({ element: elInicio })
         .setLngLat(ptoInicio.coords)
         .setPopup(new maplibregl.Popup({ offset: 12 }).setHTML(`<strong>${ptoInicio.nombre}</strong>`))
         .addTo(map);
 
     // Marcador de Fin (Rojo)
     const elFin = document.createElement("div");
-    elFin.className = "marker-start-end";
+    elFin.className = "marker-start-end marker-end";
     elFin.innerHTML = `<div style="width:14px; height:14px; background:#ef4444; border:3px solid #0f172a; border-radius:50%; box-shadow:0 0 14px #ef4444;"></div>`;
 
-    new maplibregl.Marker({ element: elFin })
+    const markerFin = new maplibregl.Marker({ element: elFin })
         .setLngLat(ptoFin.coords)
         .setPopup(new maplibregl.Popup({ offset: 12 }).setHTML(`<strong>${ptoFin.nombre}</strong>`))
         .addTo(map);
+
+    appState.terminalMarkers = [markerInicio, markerFin];
+
+    // Sincronizar visibilidad con el estado del interruptor
+    const chk = document.getElementById("chk-inicio-fin");
+    if (chk && !chk.checked) {
+        elInicio.style.display = "none";
+        elFin.style.display = "none";
+    }
 }
 
 /**
@@ -1325,6 +1349,26 @@ function setupUIEventListeners() {
     // 4. Switches de Capas 2D
     bindLayerToggle("chk-envolvente", ["envolvente-fill", "envolvente-line"]);
     bindLayerToggle("chk-ruta", ["ruta-line", "ruta-halo"]);
+
+    // Switch de Puntos de Inicio y Fin de Ruta
+    const chkInicioFin = document.getElementById("chk-inicio-fin");
+    if (chkInicioFin) {
+        chkInicioFin.addEventListener("change", (e) => {
+            const isVisible = e.target.checked;
+            const displayVal = isVisible ? "" : "none";
+            if (appState.terminalMarkers && appState.terminalMarkers.length) {
+                appState.terminalMarkers.forEach(marker => {
+                    if (marker) {
+                        const el = marker.getElement();
+                        if (el) el.style.display = displayVal;
+                        if (!isVisible && marker.getPopup() && marker.getPopup().isOpen()) {
+                            marker.getPopup().remove();
+                        }
+                    }
+                });
+            }
+        });
+    }
     
     // Switch de Puntos de Referencia (círculos y etiquetas nativas)
     const chkRef = document.getElementById("chk-referencias");
@@ -1361,15 +1405,53 @@ function setupUIEventListeners() {
     const btnNames = document.getElementById("btn-toggle-names");
     if (btnNames) btnNames.addEventListener("click", toggleAllLandmarkNames);
 
-    // 7. Botón para colapsar/expandir el panel lateral
+    // 7. Botón para colapsar/expandir el panel lateral principal (Barra 1)
     const btnCollapse = document.getElementById("btn-toggle-panel");
     const mainPanel = document.getElementById("main-panel");
     if (btnCollapse && mainPanel) {
+        // En dispositivos móviles (<= 768px) inicia colapsado para mantener el mapa despejado
+        if (window.innerWidth <= 768) {
+            mainPanel.classList.add("collapsed");
+            btnCollapse.innerText = "+";
+        }
         btnCollapse.addEventListener("click", () => {
             mainPanel.classList.toggle("collapsed");
             btnCollapse.innerText = mainPanel.classList.contains("collapsed") ? "+" : "−";
         });
     }
+
+    // 7.1 Control Minimalista de Herramientas 3D y Medición (Minimizada por defecto)
+    const btnToolsLauncher = document.getElementById("btn-tools-pill-launcher");
+    const toolsPanel = document.getElementById("tools-panel");
+    const btnCloseTools = document.getElementById("btn-close-tools");
+
+    function toggleToolsPanel(forceState) {
+        if (!toolsPanel) return;
+        const shouldOpen = forceState !== undefined ? forceState : toolsPanel.classList.contains("hidden");
+        if (shouldOpen) {
+            toolsPanel.classList.remove("hidden");
+            if (btnToolsLauncher) btnToolsLauncher.classList.add("active");
+        } else {
+            toolsPanel.classList.add("hidden");
+            if (btnToolsLauncher) btnToolsLauncher.classList.remove("active");
+        }
+    }
+
+    if (btnToolsLauncher) {
+        btnToolsLauncher.addEventListener("click", () => toggleToolsPanel());
+    }
+    if (btnCloseTools) {
+        btnCloseTools.addEventListener("click", () => toggleToolsPanel(false));
+    }
+
+    // Tecla Esc: Minimiza la barra de herramientas si está abierta y no hay medición activa
+    window.addEventListener("keydown", (e) => {
+        if (e.key === "Escape" && toolsPanel && !toolsPanel.classList.contains("hidden")) {
+            if (!appState.measure || !appState.measure.active) {
+                toggleToolsPanel(false);
+            }
+        }
+    });
 
     // 8. Filtro en vivo del buscador de hitos
     const searchInput = document.getElementById("input-search-landmarks");
@@ -1420,13 +1502,9 @@ function setupUIEventListeners() {
         });
     }
 
-    // Botones para alternar y minimizar la barra flotante de animación
-    const btnTogglePlayer = document.getElementById("btn-toggle-anim-player");
-    if (btnTogglePlayer) btnTogglePlayer.addEventListener("click", () => toggleAnimationPlayer());
-
-    // Botón flotante minimizado (Pill launcher al centro inferior)
+    // Botón minimalista de Animación del Recorrido (en esquina inferior izquierda)
     const btnPillLauncher = document.getElementById("btn-anim-pill-launcher");
-    if (btnPillLauncher) btnPillLauncher.addEventListener("click", () => toggleAnimationPlayer(true));
+    if (btnPillLauncher) btnPillLauncher.addEventListener("click", () => toggleAnimationPlayer());
 
     const btnMinPlayer = document.getElementById("btn-anim-min");
     if (btnMinPlayer) btnMinPlayer.addEventListener("click", () => toggleAnimationPlayer(false));
@@ -1915,13 +1993,9 @@ function toggleAnimationPlayer(forceState) {
     const playSvg = `<svg class="ui-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>`;
 
     if (appState.animPlayerVisible) {
-        // 1. Mostrar barra de controles y ocultar botón pill minimizado
+        // 1. Mostrar barra de controles y activar botón en esquina inferior izquierda
         if (bar) bar.classList.remove("hidden");
-        if (pill) pill.classList.add("hidden");
-        if (btnSide) {
-            btnSide.classList.add("active");
-            btnSide.innerHTML = `${playSvg} Controles de Animación (Activo)`;
-        }
+        if (pill) pill.classList.add("active");
 
         // 2. Mostrar el marcador del observador
         if (appState.observerMarker) {
@@ -1937,13 +2011,9 @@ function toggleAnimationPlayer(forceState) {
             map.setLayoutProperty("envolvente-line", "visibility", "none");
         }
     } else {
-        // 1. Ocultar barra de controles y mostrar botón pill minimizado
+        // 1. Ocultar barra de controles y desactivar botón en esquina inferior izquierda
         if (bar) bar.classList.add("hidden");
-        if (pill) pill.classList.remove("hidden");
-        if (btnSide) {
-            btnSide.classList.remove("active");
-            btnSide.innerHTML = `${playSvg} Activar Modo Animación`;
-        }
+        if (pill) pill.classList.remove("active");
 
         // 2. Si estaba reproduciéndose, pausar
         if (appState.animPlaying) {
