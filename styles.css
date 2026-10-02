@@ -578,6 +578,23 @@ html, body {
     box-shadow: 0 0 5px var(--color-end);
 }
 
+.legend-badge-line {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 14px;
+    height: 14px;
+    flex-shrink: 0;
+}
+
+.legend-line-route {
+    width: 14px;
+    height: 3.5px;
+    background: var(--color-route);
+    border-radius: 2px;
+    box-shadow: 0 0 8px rgba(56, 189, 248, 0.8), 0 0 2px #38bdf8;
+}
+
 .marker-start-end {
     cursor: pointer;
     transition: transform var(--transition-fast), filter var(--transition-fast);

@@ -144,14 +144,14 @@
                 </label>
             </div>
 
-            <!-- Ruta Peatonal -->
-            <div class="control-item" onclick="document.getElementById('chk-ruta').click()">
+            <!-- Edificaciones Urbanas (2D) -->
+            <div class="control-item" onclick="document.getElementById('chk-edificios').click()">
                 <div class="item-info">
-                    <div class="legend-badge" style="background:#38bdf8; box-shadow: 0 0 8px rgba(56, 189, 248, 0.6);"></div>
-                    <span>Ruta Peatonal (4.7 km)</span>
+                    <div class="legend-badge" style="background:#1e293b; border: 1px solid #475569;"></div>
+                    <span>Edificaciones Urbanas</span>
                 </div>
                 <label class="switch" onclick="event.stopPropagation()">
-                    <input type="checkbox" id="chk-ruta" checked>
+                    <input type="checkbox" id="chk-edificios" checked>
                     <span class="slider"></span>
                 </label>
             </div>
@@ -171,14 +171,16 @@
                 </label>
             </div>
 
-            <!-- Edificaciones Urbanas (2D) -->
-            <div class="control-item" onclick="document.getElementById('chk-edificios').click()">
+            <!-- Ruta Peatonal -->
+            <div class="control-item" onclick="document.getElementById('chk-ruta').click()">
                 <div class="item-info">
-                    <div class="legend-badge" style="background:#1e293b; border: 1px solid #475569;"></div>
-                    <span>Edificaciones Urbanas</span>
+                    <div class="legend-badge-line">
+                        <span class="legend-line-route"></span>
+                    </div>
+                    <span>Ruta Peatonal (4.7 km)</span>
                 </div>
                 <label class="switch" onclick="event.stopPropagation()">
-                    <input type="checkbox" id="chk-edificios" checked>
+                    <input type="checkbox" id="chk-ruta" checked>
                     <span class="slider"></span>
                 </label>
             </div>
