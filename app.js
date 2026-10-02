@@ -548,8 +548,8 @@ function setupLayers() {
             layout: { visibility: iniInitVis },
             paint: {
                 "circle-color": "#10b981",
-                "circle-radius": 14,
-                "circle-opacity": 0.45,
+                "circle-radius": 10.5,
+                "circle-opacity": 0.40,
                 "circle-blur": 0.5
             }
         });
@@ -562,9 +562,9 @@ function setupLayers() {
             layout: { visibility: iniInitVis },
             paint: {
                 "circle-color": "#10b981",
-                "circle-radius": 7.5,
+                "circle-radius": 5.5,
                 "circle-stroke-color": "#0f172a",
-                "circle-stroke-width": 2.5
+                "circle-stroke-width": 2.0
             }
         });
     }
@@ -581,8 +581,8 @@ function setupLayers() {
             layout: { visibility: finInitVis },
             paint: {
                 "circle-color": "#ef4444",
-                "circle-radius": 14,
-                "circle-opacity": 0.45,
+                "circle-radius": 10.5,
+                "circle-opacity": 0.40,
                 "circle-blur": 0.5
             }
         });
@@ -595,9 +595,9 @@ function setupLayers() {
             layout: { visibility: finInitVis },
             paint: {
                 "circle-color": "#ef4444",
-                "circle-radius": 7.5,
+                "circle-radius": 5.5,
                 "circle-stroke-color": "#0f172a",
-                "circle-stroke-width": 2.5
+                "circle-stroke-width": 2.0
             }
         });
     }
