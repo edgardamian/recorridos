@@ -2771,14 +2771,66 @@ body.measuring-active .maplibregl-canvas {
         white-space: nowrap !important;
     }
 
-    /* Cajón de perfil analítico */
+    /* Cajón de perfil analítico: acoplado abajo en móvil exactamente igual que la barra de animación */
     .profile-chart-drawer {
-        max-height: 52vh !important;
-        padding: 8px 10px !important;
+        width: calc(100vw - 16px) !important;
+        max-width: 500px !important;
+        bottom: max(10px, env(safe-area-inset-bottom, 10px)) !important;
+        left: 50% !important;
+        transform: translateX(-50%) !important;
+        max-height: 54vh !important;
+        padding: 8px 10px 10px !important;
+        border-radius: 12px !important;
+        box-shadow: 0 12px 35px rgba(0, 0, 0, 0.85), 0 0 16px rgba(56, 189, 248, 0.2) !important;
+        overflow-y: auto !important;
+        scrollbar-width: none !important;
+        z-index: 1100 !important;
+    }
+    .profile-chart-drawer::-webkit-scrollbar {
+        display: none !important;
+    }
+    .profile-chart-drawer.collapsed {
+        transform: translate(-50%, 140%) !important;
     }
     .profile-drawer-header {
-        flex-wrap: wrap !important;
+        display: grid !important;
+        grid-template-columns: 1fr auto !important;
         gap: 6px !important;
+        align-items: center !important;
+    }
+    .profile-drawer-title {
+        grid-column: 1 !important;
+        gap: 6px !important;
+    }
+    .profile-drawer-title h3 {
+        font-size: 11.5px !important;
+    }
+    .btn-close-profile {
+        grid-column: 2 !important;
+        justify-self: end !important;
+        padding: 2px 6px !important;
+        font-size: 14px !important;
+    }
+    .profile-playback-controls {
+        grid-column: 1 / -1 !important;
+        display: flex !important;
+        justify-content: space-between !important;
+        width: 100% !important;
+        padding: 2px 4px !important;
+    }
+    .profile-view-selector {
+        grid-column: 1 / -1 !important;
+        display: flex !important;
+        width: 100% !important;
+    }
+    .btn-profile-tab {
+        flex: 1 !important;
+        text-align: center !important;
+        padding: 3px 6px !important;
+        font-size: 10px !important;
+    }
+    .profile-chart-container {
+        height: 64px !important;
     }
 
     /* HUD de medición */
@@ -2893,6 +2945,17 @@ body.measuring-active .maplibregl-canvas {
     }
     .btn-profile-stop span {
         display: none !important;
+    }
+    .profile-chart-drawer {
+        width: calc(100vw - 12px) !important;
+        bottom: max(8px, env(safe-area-inset-bottom, 8px)) !important;
+        padding: 6px 8px 8px !important;
+    }
+    .profile-drawer-title h3 {
+        font-size: 10.5px !important;
+    }
+    .profile-chart-container {
+        height: 56px !important;
     }
 }
 

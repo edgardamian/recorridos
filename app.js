@@ -1688,18 +1688,6 @@ function setupUIEventListeners() {
     const toolsPanel = document.getElementById("tools-panel");
     const btnCloseTools = document.getElementById("btn-close-tools");
 
-    function toggleToolsPanel(forceState) {
-        if (!toolsPanel) return;
-        const shouldOpen = forceState !== undefined ? forceState : toolsPanel.classList.contains("hidden");
-        if (shouldOpen) {
-            toolsPanel.classList.remove("hidden");
-            if (btnToolsLauncher) btnToolsLauncher.classList.add("active");
-        } else {
-            toolsPanel.classList.add("hidden");
-            if (btnToolsLauncher) btnToolsLauncher.classList.remove("active");
-        }
-    }
-
     if (btnToolsLauncher) {
         btnToolsLauncher.addEventListener("click", () => toggleToolsPanel());
     }
@@ -1785,6 +1773,24 @@ function setupUIEventListeners() {
             togglePlayAnimation();
         }
     });
+}
+
+/**
+ * Alterna la visibilidad del panel flotante de Herramientas de Análisis 3D y Medición.
+ * @param {boolean} [forceState]
+ */
+function toggleToolsPanel(forceState) {
+    const toolsPanel = document.getElementById("tools-panel");
+    const btnToolsLauncher = document.getElementById("btn-tools-pill-launcher");
+    if (!toolsPanel) return;
+    const shouldOpen = forceState !== undefined ? forceState : toolsPanel.classList.contains("hidden");
+    if (shouldOpen) {
+        toolsPanel.classList.remove("hidden");
+        if (btnToolsLauncher) btnToolsLauncher.classList.add("active");
+    } else {
+        toolsPanel.classList.add("hidden");
+        if (btnToolsLauncher) btnToolsLauncher.classList.remove("active");
+    }
 }
 
 /**
@@ -2461,6 +2467,9 @@ function toggleAnimationPlayer(forceState) {
     const playSvg = `<svg class="ui-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>`;
 
     if (appState.animPlayerVisible) {
+        // Ocultar herramientas de análisis para despejar el mapa
+        toggleToolsPanel(false);
+
         // Minimizar el cajón de perfil de isovistas si está activo para evitar solapamiento
         const drawer = document.getElementById("profile-chart-drawer");
         if (drawer && !drawer.classList.contains("collapsed")) {
@@ -3297,6 +3306,19 @@ function toggleProfileDrawer(forceState) {
     const open = forceState !== undefined ? forceState : isCollapsed;
 
     if (open) {
+        // Al elegir la herramienta de perfil de isovistas, ocultar automáticamente las herramientas de análisis
+        toggleToolsPanel(false);
+
+        // En pantallas móviles (<= 768px), contraer también el panel lateral si estuviera desplegado
+        if (window.innerWidth <= 768) {
+            const mainPanel = document.getElementById("main-panel");
+            const btnCollapse = document.getElementById("btn-toggle-panel");
+            if (mainPanel && !mainPanel.classList.contains("collapsed")) {
+                mainPanel.classList.add("collapsed");
+                if (btnCollapse) btnCollapse.innerText = "+";
+            }
+        }
+
         // Minimizar la herramienta de animación si está activa para evitar solapamiento
         if (appState.animPlayerVisible) {
             toggleAnimationPlayer(false);
