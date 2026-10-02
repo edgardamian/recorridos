@@ -1610,7 +1610,7 @@ function updateStatsUI(meta, edif) {
     const elLandmarksCount = document.getElementById("stat-landmarks-count");
 
     if (elRouteLen) elRouteLen.innerText = `${(meta.longitud_ruta_metros / 1000).toFixed(1)} km`;
-    if (elBuildingCount) elBuildingCount.innerText = `${edif.features.length.toLocaleString()} estr`;
+    if (elBuildingCount) elBuildingCount.innerText = `${edif.features.length.toLocaleString()} polígonos`;
     if (elLandmarksCount) elLandmarksCount.innerText = `${meta.total_hitos} hitos`;
 }
 
