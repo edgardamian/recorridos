@@ -2217,6 +2217,12 @@ function renderAnimationFrame(frameIndex, isUserScrubbing = false) {
 
     // 7. Sincronizar la aguja del perfil de apertura visual
     updateProfileNeedle(frameIndex);
+
+    // 8. Sincronizar telemetría integrada en los encabezados del perfil analítico si está desplegado
+    const profileDrawer = document.getElementById("profile-chart-drawer");
+    if (profileDrawer && !profileDrawer.classList.contains("collapsed")) {
+        updateProfileHeaderLiveTelemetry(frame);
+    }
 }
 
 /**
@@ -2303,8 +2309,7 @@ function startAnimation() {
         appState.activePopup = null;
     }
 
-    const profTooltip = document.getElementById("profile-tooltip");
-    if (profTooltip) profTooltip.classList.add("hidden");
+
 
     // Ocultar temporalmente la envolvente estática para disfrutar la revelación progresiva
     if (map.getLayer("envolvente-fill")) {
@@ -2359,10 +2364,9 @@ function stopAnimation() {
     renderAnimationFrame(0, false);
     updatePlayButtonUI(false);
 
-    // Ocultar marcador de muestreo del perfil y tooltip si estuvieran activos
+    // Ocultar marcador de muestreo del perfil y restaurar estadísticas estáticas generales
     hideProfileProbeFromMap();
-    const tooltip = document.getElementById("profile-tooltip");
-    if (tooltip) tooltip.classList.add("hidden");
+    resetProfileHeaderToStaticStats();
 
     // Restaurar visibilidad de la envolvente estática si su checkbox está activo
     const chkEnv = document.getElementById("chk-envolvente");
@@ -3327,10 +3331,14 @@ function toggleProfileDrawer(forceState) {
         drawer.classList.remove("collapsed");
         buildDualProfileCharts();
         updateProfileNeedle(appState.animCurrentFrame);
+        if (appState.animPlaying && appState.animData && appState.animData.frames) {
+            updateProfileHeaderLiveTelemetry(appState.animData.frames[appState.animCurrentFrame]);
+        } else {
+            resetProfileHeaderToStaticStats();
+        }
     } else {
         drawer.classList.add("collapsed");
-        const tooltip = document.getElementById("profile-tooltip");
-        if (tooltip) tooltip.classList.add("hidden");
+        resetProfileHeaderToStaticStats();
         hideProfileProbeFromMap();
 
         // Al cerrar perfiles (si la animación no está visible), comportarse exactamente igual
@@ -3567,6 +3575,84 @@ function buildDualProfileCharts() {
 const buildVisualOpennessChart = buildDualProfileCharts;
 
 /**
+ * Actualiza los badges interactivos integrados en los encabezados de las gráficas
+ * mostrando la telemetría en vivo (distancia, hito, área visual y altitud)
+ * en el lugar donde están los máximos y mínimos, evitando cualquier obstrucción.
+ * @param {object} frame - Datos del frame actual
+ */
+function updateProfileHeaderLiveTelemetry(frame) {
+    if (!frame) return;
+
+    const isoLiveBadges = document.getElementById("iso-live-badges");
+    const isoStaticBadges = document.getElementById("iso-static-badges");
+    const elevLiveBadges = document.getElementById("elev-live-badges");
+    const elevStaticBadges = document.getElementById("elev-static-badges");
+
+    if (isoLiveBadges && isoStaticBadges) {
+        isoStaticBadges.classList.add("hidden");
+        isoLiveBadges.classList.remove("hidden");
+    }
+    if (elevLiveBadges && elevStaticBadges) {
+        elevStaticBadges.classList.add("hidden");
+        elevLiveBadges.classList.remove("hidden");
+    }
+
+    const distStr = `${(frame.dist_m / 1000).toFixed(2)} km (${frame.pct.toFixed(0)}%)`;
+    const areaStr = `${frame.area_m2.toLocaleString()} m²`;
+    const elevStr = `${frame.elev_m !== undefined ? frame.elev_m.toFixed(1) : '--'} msnm`;
+
+    // 1. Distancia acumulada y porcentaje
+    const elIsoDist = document.getElementById("iso-live-dist");
+    const elElevDist = document.getElementById("elev-live-dist");
+    if (elIsoDist) elIsoDist.innerText = distStr;
+    if (elElevDist) elElevDist.innerText = distStr;
+
+    // 2. Hito (Punto de referencia si existe en las cercanías)
+    const elIsoHito = document.getElementById("iso-live-hito");
+    const elElevHito = document.getElementById("elev-live-hito");
+    const hitoName = frame.hito ? `★ ${frame.hito.nombre}` : "";
+
+    [elIsoHito, elElevHito].forEach(el => {
+        if (!el) return;
+        if (hitoName) {
+            el.innerText = hitoName;
+            el.classList.remove("hidden");
+        } else {
+            el.innerText = "";
+            el.classList.add("hidden");
+        }
+    });
+
+    // 3. Valores específicos de cada gráfico
+    const elIsoVal = document.getElementById("iso-live-val");
+    const elElevVal = document.getElementById("elev-live-val");
+    if (elIsoVal) elIsoVal.innerText = areaStr;
+    if (elElevVal) elElevVal.innerText = elevStr;
+}
+
+/**
+ * Restaura los encabezados de las gráficas para mostrar nuevamente las estadísticas
+ * generales (Máx, Prom, Mín / Cota Máx, Mín, Desnivel).
+ */
+function resetProfileHeaderToStaticStats() {
+    const isoLiveBadges = document.getElementById("iso-live-badges");
+    const isoStaticBadges = document.getElementById("iso-static-badges");
+    const elevLiveBadges = document.getElementById("elev-live-badges");
+    const elevStaticBadges = document.getElementById("elev-static-badges");
+
+    if (isoLiveBadges && isoStaticBadges) {
+        isoLiveBadges.classList.add("hidden");
+        isoStaticBadges.classList.remove("hidden");
+    }
+    if (elevLiveBadges && elevStaticBadges) {
+        elevLiveBadges.classList.add("hidden");
+        elevStaticBadges.classList.remove("hidden");
+    }
+
+    hideProfileProbeFromMap();
+}
+
+/**
  * Crea o actualiza en el mapa el marcador que señala el punto exacto donde se toma el dato.
  * Despliega un halo pulsante y una insignia flotante con distancia y cota.
  * @param {object} p - Objeto con { frame, index }
@@ -3681,37 +3767,18 @@ function handleRouteClick(lngLat) {
     // Actualizar aguja en las gráficas
     updateProfileNeedle(closestIndex);
 
+    // Actualizar telemetría integrada en los encabezados del perfil
+    updateProfileHeaderLiveTelemetry(frame);
+
     // Actualizar campo visual e isovista en el mapa
     renderAnimationFrame(closestIndex, false);
-
-    // Si el drawer de perfiles está abierto, sincronizar el tooltip flotante de la gráfica
-    const tooltip = document.getElementById("profile-tooltip");
-    const container = document.getElementById("profile-chart-container-iso") || document.getElementById("profile-chart-container-elev");
-    if (tooltip && container) {
-        const rect = container.getBoundingClientRect();
-        const fraction = closestIndex / (frames.length - 1);
-        const relX = fraction * rect.width;
-
-        tooltip.classList.remove("hidden");
-        tooltip.style.left = `${relX}px`;
-
-        const ptDist = document.getElementById("pt-dist");
-        const ptArea = document.getElementById("pt-area");
-        const ptElev = document.getElementById("pt-elev");
-        const ptHito = document.getElementById("pt-hito");
-
-        if (ptDist) ptDist.innerText = `${(frame.dist_m / 1000).toFixed(2)} km (${frame.pct.toFixed(0)}%)`;
-        if (ptArea) ptArea.innerHTML = `<svg class="ui-icon" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg> ${frame.area_m2.toLocaleString()} m²`;
-        if (ptElev) ptElev.innerHTML = `<svg class="ui-icon" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m8 3 4 8 5-5 5 15H2L8 3z"/></svg> ${frame.elev_m !== undefined ? frame.elev_m.toFixed(1) : '--'} msnm`;
-        if (ptHito) {
-            ptHito.innerHTML = frame.hito ? `<svg class="ui-icon" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg> ${frame.hito.nombre}` : "";
-        }
-    }
 }
 
 /**
  * Configura la interactividad unificada sobre ambos contenedores de perfiles.
- * El tooltip/popup se muestra ÚNICAMENTE cuando el usuario hace clic o arrastra sobre las gráficas.
+ * La telemetría en tiempo real (distancia, hito, área visual y cota) se despliega directamente
+ * en el encabezado de cada gráfica (donde están los máximos y mínimos), evitando cualquier
+ * obstrucción visual sobre las curvas SVG o desbordes en los extremos.
  */
 function setupDualProfileInteractivity(points, total) {
     const containers = [
@@ -3719,21 +3786,18 @@ function setupDualProfileInteractivity(points, total) {
         document.getElementById("profile-chart-container-elev")
     ].filter(Boolean);
 
-    const tooltip = document.getElementById("profile-tooltip");
-    const ptDist = document.getElementById("pt-dist");
-    const ptArea = document.getElementById("pt-area");
-    const ptElev = document.getElementById("pt-elev");
-    const ptHito = document.getElementById("pt-hito");
-    const btnClose = document.getElementById("pt-close-btn");
-
-    if (btnClose && !btnClose._hasListener) {
-        btnClose._hasListener = true;
-        btnClose.addEventListener("click", (e) => {
-            e.stopPropagation();
-            if (tooltip) tooltip.classList.add("hidden");
-            hideProfileProbeFromMap();
-        });
-    }
+    // Botones de reinicio/cierre rápido integrados en los encabezados
+    const btnResetIso = document.getElementById("btn-iso-live-reset");
+    const btnResetElev = document.getElementById("btn-elev-live-reset");
+    [btnResetIso, btnResetElev].forEach(btn => {
+        if (btn && !btn._hasResetListener) {
+            btn._hasResetListener = true;
+            btn.addEventListener("click", (e) => {
+                e.stopPropagation();
+                resetProfileHeaderToStaticStats();
+            });
+        }
+    });
 
     function updateTooltipAndJump(container, e, jumpMap = true) {
         const rect = container.getBoundingClientRect();
@@ -3743,19 +3807,14 @@ function setupDualProfileInteractivity(points, total) {
         const targetIndex = Math.min(total - 1, Math.max(0, Math.round(fraction * (total - 1))));
         const p = points[targetIndex];
 
-        if (tooltip) {
-            tooltip.classList.remove("hidden");
-            tooltip.style.left = `${relX}px`;
-            if (ptDist) ptDist.innerText = `${(p.frame.dist_m / 1000).toFixed(2)} km (${p.frame.pct.toFixed(0)}%)`;
-            if (ptArea) ptArea.innerHTML = `<svg class="ui-icon" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg> ${p.frame.area_m2.toLocaleString()} m²`;
-            if (ptElev) ptElev.innerHTML = `<svg class="ui-icon" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m8 3 4 8 5-5 5 15H2L8 3z"/></svg> ${p.frame.elev_m !== undefined ? p.frame.elev_m.toFixed(1) : '--'} msnm`;
-            if (ptHito) {
-                ptHito.innerHTML = p.frame.hito ? `<svg class="ui-icon" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg> ${p.frame.hito.nombre}` : "";
-            }
-        }
+        // 1. Mostrar telemetría interactiva en vivo en el encabezado (reemplaza Máx/Mín de forma limpia)
+        updateProfileHeaderLiveTelemetry(p.frame);
 
-        // Mostrar el punto de muestreo exacto en el mapa
+        // 2. Mostrar el punto de muestreo exacto en el mapa con halo y cota
         showProfileProbeOnMap(p);
+
+        // 3. Sincronizar las agujas indicadoras en ambas curvas
+        updateProfileNeedle(targetIndex);
 
         if (jumpMap) {
             if (appState.animPlaying) pauseAnimation();
@@ -3770,7 +3829,7 @@ function setupDualProfileInteractivity(points, total) {
         if (cont._hasDualListener) return;
         cont._hasDualListener = true;
 
-        // Clic / Mousedown: ÚNICAMENTE aquí se muestra el popup y salta la posición en el mapa
+        // Clic / Mousedown: actualiza posición y salta en el mapa
         cont.addEventListener("mousedown", (e) => {
             isScrubbing = true;
             activeContainer = cont;
@@ -3806,10 +3865,9 @@ function setupDualProfileInteractivity(points, total) {
         isScrubbing = false;
     });
 
-    // Ocultar el popup al hacer clic fuera del área de las gráficas
+    // Ocultar el marcador de sondeo en el mapa al hacer clic fuera del área del perfil
     document.addEventListener("click", (e) => {
-        if (!e.target.closest(".profile-chart-container") && !e.target.closest("#profile-tooltip") && !e.target.closest(".btn-profile-tab") && !e.target.closest("#btn-toggle-profile-panel")) {
-            if (tooltip) tooltip.classList.add("hidden");
+        if (!e.target.closest(".profile-chart-container") && !e.target.closest(".profile-header-readout") && !e.target.closest(".btn-profile-tab") && !e.target.closest("#btn-toggle-profile-panel")) {
             hideProfileProbeFromMap();
         }
     });

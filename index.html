@@ -35,7 +35,7 @@
 
     <!-- 3. Encabezado Flotante Superior (Pill Banner) -->
     <header class="top-header-pill">
-        <h1>Propuesta de corredor cultural (centro de Morelia)<br><span class="header-subtitle">Ruta de Norte a Sur</span></h1>
+        <h1>Corredor cultural (centro de Morelia)<br><span class="header-subtitle">Ruta de Norte a Sur</span></h1>
         <button type="button" class="btn-pill-snapshot" id="btn-header-snapshot" title="Captura rápida en PNG">
             <svg class="ui-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                 stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -794,13 +794,20 @@
                     <span class="block-dot cyan"></span>
                     <span>Área Visual de la Isovista</span>
                 </div>
-                <div class="profile-drawer-badges">
-                    <span class="profile-stat-badge"><strong>Máx:</strong> <span id="profile-stat-max">--
-                            m²</span></span>
-                    <span class="profile-stat-badge"><strong>Prom:</strong> <span id="profile-stat-avg">--
-                            m²</span></span>
-                    <span class="profile-stat-badge"><strong>Mín:</strong> <span id="profile-stat-min">--
-                            m²</span></span>
+                <div class="profile-header-readout">
+                    <!-- Badges estáticos (por defecto) -->
+                    <div class="profile-drawer-badges" id="iso-static-badges">
+                        <span class="profile-stat-badge"><strong>Máx:</strong> <span id="profile-stat-max">-- m²</span></span>
+                        <span class="profile-stat-badge"><strong>Prom:</strong> <span id="profile-stat-avg">-- m²</span></span>
+                        <span class="profile-stat-badge"><strong>Mín:</strong> <span id="profile-stat-min">-- m²</span></span>
+                    </div>
+                    <!-- Badges interactivos en vivo (durante animación o interacción) -->
+                    <div class="profile-live-badges hidden" id="iso-live-badges">
+                        <span class="profile-live-badge badge-dist" id="iso-live-dist" title="Distancia acumulada en la ruta">0.00 km</span>
+                        <span class="profile-live-badge badge-hito hidden" id="iso-live-hito" title="Punto de referencia"></span>
+                        <span class="profile-live-badge badge-val val-cyan" id="iso-live-val" title="Área visual instantánea">0 m²</span>
+                        <button type="button" class="btn-live-reset" id="btn-iso-live-reset" title="Volver a estadísticas generales">✕</button>
+                    </div>
                 </div>
             </div>
             <div class="profile-chart-container" id="profile-chart-container-iso">
@@ -818,13 +825,20 @@
                     <span class="block-dot emerald"></span>
                     <span>Perfil Altitudinal del Terreno (DEM)</span>
                 </div>
-                <div class="profile-drawer-badges">
-                    <span class="profile-stat-badge"><strong>Cota Máx:</strong> <span id="elev-stat-max">--
-                            m</span></span>
-                    <span class="profile-stat-badge"><strong>Cota Mín:</strong> <span id="elev-stat-min">--
-                            m</span></span>
-                    <span class="profile-stat-badge"><strong>Desnivel:</strong> <span id="elev-stat-diff">--
-                            m</span></span>
+                <div class="profile-header-readout">
+                    <!-- Badges estáticos (por defecto) -->
+                    <div class="profile-drawer-badges" id="elev-static-badges">
+                        <span class="profile-stat-badge"><strong>Cota Máx:</strong> <span id="elev-stat-max">-- m</span></span>
+                        <span class="profile-stat-badge"><strong>Cota Mín:</strong> <span id="elev-stat-min">-- m</span></span>
+                        <span class="profile-stat-badge"><strong>Desnivel:</strong> <span id="elev-stat-diff">-- m</span></span>
+                    </div>
+                    <!-- Badges interactivos en vivo (durante animación o interacción) -->
+                    <div class="profile-live-badges hidden" id="elev-live-badges">
+                        <span class="profile-live-badge badge-dist" id="elev-live-dist" title="Distancia acumulada en la ruta">0.00 km</span>
+                        <span class="profile-live-badge badge-hito hidden" id="elev-live-hito" title="Punto de referencia"></span>
+                        <span class="profile-live-badge badge-val val-emerald" id="elev-live-val" title="Cota altitudinal sobre el nivel del mar">0 msnm</span>
+                        <button type="button" class="btn-live-reset" id="btn-elev-live-reset" title="Volver a estadísticas generales">✕</button>
+                    </div>
                 </div>
             </div>
             <div class="profile-chart-container" id="profile-chart-container-elev">
@@ -832,28 +846,6 @@
                 <div id="profile-needle-elev" class="profile-needle needle-emerald">
                     <div class="profile-needle-dot dot-emerald"></div>
                 </div>
-            </div>
-        </div>
-
-        <!-- Tooltip interactivo flotante unificado (se muestra únicamente al dar clic en la gráfica) -->
-        <div id="profile-tooltip" class="profile-tooltip hidden">
-            <div class="pt-row-main">
-                <span class="pt-dist" id="pt-dist">0.0 km</span>
-                <span class="pt-hito" id="pt-hito">Catedral</span>
-                <button type="button" class="pt-close-btn" id="pt-close-btn" title="Cerrar detalle">✕</button>
-            </div>
-            <div class="pt-row-metrics">
-                <span class="pt-area" id="pt-area"><svg class="ui-icon" width="11" height="11" viewBox="0 0 24 24"
-                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                        stroke-linejoin="round">
-                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-                        <circle cx="12" cy="12" r="3" />
-                    </svg> 0 m²</span>
-                <span class="pt-elev" id="pt-elev"><svg class="ui-icon" width="11" height="11" viewBox="0 0 24 24"
-                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                        stroke-linejoin="round">
-                        <path d="m8 3 4 8 5-5 5 15H2L8 3z" />
-                    </svg> 0 msnm</span>
             </div>
         </div>
 
