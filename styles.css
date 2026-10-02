@@ -277,6 +277,13 @@ html, body {
     z-index: 10 !important;
 }
 
+/* Control de animación en esquina inferior izquierda */
+.maplibregl-ctrl-bottom-left {
+    margin-left: 10px !important;
+    margin-bottom: 12px !important;
+    z-index: 10 !important;
+}
+
 .maplibregl-ctrl-scale {
     background: rgba(15, 23, 42, 0.88) !important;
     backdrop-filter: blur(12px) !important;
@@ -2648,11 +2655,31 @@ body.measuring-active .maplibregl-canvas {
         z-index: 1002;
     }
 
+    /* Subir el botón de animación para librar la barra inferior de navegación (botón Atrás) de iOS Safari */
+    .maplibregl-ctrl-bottom-left {
+        bottom: max(64px, calc(env(safe-area-inset-bottom, 0px) + 54px)) !important;
+        left: 10px !important;
+        z-index: 25 !important;
+    }
+    #ctrl-anim-group {
+        margin: 0 !important;
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.75), 0 0 12px rgba(56, 189, 248, 0.35) !important;
+        border-radius: 8px !important;
+    }
+    #ctrl-anim-group .btn-ctrl-custom {
+        width: 36px !important;
+        height: 36px !important;
+    }
+    #ctrl-anim-group .btn-ctrl-custom svg {
+        width: 18px !important;
+        height: 18px !important;
+    }
+
     /* Barra flotante de animación: optimizada para móvil, nunca se corta ni tapa controles */
     .anim-player-floating {
         width: calc(100vw - 16px) !important;
         max-width: 500px !important;
-        bottom: max(10px, env(safe-area-inset-bottom, 10px)) !important;
+        bottom: max(16px, calc(env(safe-area-inset-bottom, 0px) + 12px)) !important;
         left: 50% !important;
         transform: translateX(-50%) !important;
         padding: 8px 10px 10px !important;
@@ -2812,7 +2839,7 @@ body.measuring-active .maplibregl-canvas {
     .profile-chart-drawer {
         width: calc(100vw - 16px) !important;
         max-width: 480px !important;
-        bottom: max(8px, env(safe-area-inset-bottom, 8px)) !important;
+        bottom: max(14px, calc(env(safe-area-inset-bottom, 0px) + 10px)) !important;
         left: 50% !important;
         transform: translateX(-50%) !important;
         max-height: 44vh !important;
@@ -2919,9 +2946,21 @@ body.measuring-active .maplibregl-canvas {
         width: calc(100vw - 16px);
     }
     /* En pantallas muy estrechas (<480px) usar textos compactos para garantizar cero desbordes */
+    .maplibregl-ctrl-bottom-left {
+        bottom: max(68px, calc(env(safe-area-inset-bottom, 0px) + 58px)) !important;
+        left: 8px !important;
+    }
+    #ctrl-anim-group .btn-ctrl-custom {
+        width: 38px !important;
+        height: 38px !important;
+    }
+    #ctrl-anim-group .btn-ctrl-custom svg {
+        width: 19px !important;
+        height: 19px !important;
+    }
     .anim-player-floating {
         width: calc(100vw - 12px) !important;
-        bottom: max(8px, env(safe-area-inset-bottom, 8px)) !important;
+        bottom: max(16px, calc(env(safe-area-inset-bottom, 0px) + 12px)) !important;
         padding: 7px 8px 8px !important;
     }
     .anim-telemetry-chip {
@@ -3004,7 +3043,7 @@ body.measuring-active .maplibregl-canvas {
     }
     .profile-chart-drawer {
         width: calc(100vw - 10px) !important;
-        bottom: max(6px, env(safe-area-inset-bottom, 6px)) !important;
+        bottom: max(14px, calc(env(safe-area-inset-bottom, 0px) + 8px)) !important;
         padding: 4px 6px 5px 6px !important;
     }
     .profile-drawer-title h3 {
