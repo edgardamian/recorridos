@@ -185,3 +185,7 @@ eferencias-labels) está encendida globalmente por el usuario, se filtra para oc
 uta-line y 
 uta-halo) en el mapa, se detecta el fotograma más cercano, se posiciona el marcador de muestreo y se sincronizan las agujas y el tooltip de las gráficas duales.
         4. Al cerrar el tooltip (✕) o replegar el panel de perfiles, el marcador de muestreo se oculta limpiamente.
+   10. **Controles de Reproducción y Velocidad (½x, 1x, 2x, 4x) en el Panel de Perfiles**:
+       - **Objetivo**: Permitir iniciar, pausar y graduar la velocidad del recorrido interactivo directamente desde la cabecera del cajón de perfiles (#profile-chart-drawer), manteniendo la vista en las curvas de apertura visual y altitud.
+       - **Botón de Reproducción (#btn-profile-play)**: Permite arrancar (*'Recorrer'*) o detener (*'Pausar'*) el avance continuo de las agujas sobre las curvas SVG en sincronía con el marcador del observador y las isovistas en el mapa.
+       - **Selector de Velocidad Sincronizado (.profile-speed-group)**: Cuatro botones (½x, 1x, 2x, 4x) integrados en la cabecera con actualización bidireccional inmediata. Si se cambia la velocidad en los perfiles o en la barra flotante de animación, ambos grupos reflejan el estado activo simultáneamente.

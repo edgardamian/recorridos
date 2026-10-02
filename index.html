@@ -724,6 +724,21 @@
                 </div>
             </div>
 
+            <!-- Controles de Reproducción y Velocidad del Perfil (½x, 1x, 2x, 4x) -->
+            <div class="profile-playback-controls">
+                <button type="button" class="btn-profile-action" id="btn-profile-play" title="Iniciar/Pausar recorrido sincronizado en los perfiles">
+                    <span id="profile-play-icon"><svg class="ui-icon" width="11" height="11" viewBox="0 0 24 24" fill="currentColor" stroke="none"><polygon points="6 4 20 12 6 20 6 4" /></svg></span>
+                    <span id="profile-play-text">Recorrer</span>
+                </button>
+                <div class="anim-speed-group profile-speed-group">
+                    <span class="speed-label">Vel:</span>
+                    <button type="button" class="btn-speed" data-speed="0.5" title="Media velocidad (½x / 0.5x - más lento)">½x</button>
+                    <button type="button" class="btn-speed active" data-speed="1" title="Velocidad normal (1x)">1x</button>
+                    <button type="button" class="btn-speed" data-speed="2" title="Doble velocidad (2x)">2x</button>
+                    <button type="button" class="btn-speed" data-speed="4" title="Cuádruple velocidad (4x)">4x</button>
+                </div>
+            </div>
+
             <!-- Selector de Vista de Gráficas: Ambas | Isovistas | Altitud -->
             <div class="profile-view-selector">
                 <button type="button" class="btn-profile-tab active" data-tab="both" id="tab-prof-both"><svg

@@ -2191,6 +2191,51 @@ body.measuring-active .maplibregl-canvas {
     color: #94a3b8;
 }
 
+/* Controles de reproducción y velocidad del perfil (½x, 1x, 2x, 4x) */
+.profile-playback-controls {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(30, 41, 59, 0.85);
+    border: 1px solid rgba(56, 189, 248, 0.35);
+    border-radius: 8px;
+    padding: 2px 5px;
+}
+
+.btn-profile-action {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+    border: 1px solid #38bdf8;
+    color: #ffffff;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 4px 9px;
+    border-radius: 6px;
+    cursor: pointer;
+    box-shadow: 0 0 10px rgba(56, 189, 248, 0.3);
+    transition: all 0.2s ease;
+}
+
+.btn-profile-action:hover {
+    background: linear-gradient(135deg, #0369a1 0%, #075985 100%);
+    box-shadow: 0 0 14px rgba(56, 189, 248, 0.5);
+    transform: translateY(-1px);
+}
+
+.btn-profile-action.playing {
+    background: linear-gradient(135deg, #e11d48 0%, #be123c 100%);
+    border-color: #f43f5e;
+    box-shadow: 0 0 10px rgba(244, 63, 94, 0.4);
+}
+
+.profile-speed-group {
+    background: transparent !important;
+    border: none !important;
+    padding: 0 !important;
+}
+
 /* Selector de vista: Ambas | Isovistas | Altitud */
 .profile-view-selector {
     display: flex;
@@ -2704,8 +2749,12 @@ body.measuring-active .maplibregl-canvas {
 
     /* Cajón de perfil analítico */
     .profile-chart-drawer {
-        max-height: 48vh !important;
+        max-height: 52vh !important;
         padding: 8px 10px !important;
+    }
+    .profile-drawer-header {
+        flex-wrap: wrap !important;
+        gap: 6px !important;
     }
 
     /* HUD de medición */
@@ -2806,6 +2855,13 @@ body.measuring-active .maplibregl-canvas {
     }
     .probe-badge-elev {
         font-size: 8.5px !important;
+    }
+    .profile-drawer-title p {
+        display: none !important;
+    }
+    .btn-profile-action {
+        padding: 3px 6px !important;
+        font-size: 10px !important;
     }
 }
 

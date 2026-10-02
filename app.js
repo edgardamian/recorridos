@@ -1734,6 +1734,9 @@ function setupUIEventListeners() {
     const btnAnimPlay = document.getElementById("btn-anim-play");
     if (btnAnimPlay) btnAnimPlay.addEventListener("click", togglePlayAnimation);
 
+    const btnProfilePlay = document.getElementById("btn-profile-play");
+    if (btnProfilePlay) btnProfilePlay.addEventListener("click", togglePlayAnimation);
+
     const btnAnimStop = document.getElementById("btn-anim-stop");
     if (btnAnimStop) btnAnimStop.addEventListener("click", stopAnimation);
 
@@ -2280,6 +2283,11 @@ function startAnimation() {
 
     hideProfileProbeFromMap();
 
+    // Mostrar el marcador del observador para seguir visualmente el recorrido
+    if (appState.observerMarker) {
+        appState.observerMarker.getElement().style.display = "flex";
+    }
+
     // Cerrar cualquier popup activo para que no quede rezagado al avanzar la cámara
     if (appState.activePopup) {
         appState.activePopup.remove();
@@ -2350,12 +2358,16 @@ function stopAnimation() {
 }
 
 /**
- * Actualiza el texto e icono del botón principal de reproducción.
+ * Actualiza el texto e icono del botón principal de reproducción en el HUD y en el drawer de perfiles.
  */
 function updatePlayButtonUI(isPlaying) {
     const btn = document.getElementById("btn-anim-play");
     const icon = document.getElementById("anim-play-icon");
     const text = document.getElementById("anim-play-text");
+
+    const btnProf = document.getElementById("btn-profile-play");
+    const iconProf = document.getElementById("profile-play-icon");
+    const textProf = document.getElementById("profile-play-text");
 
     if (btn) {
         if (isPlaying) {
@@ -2369,6 +2381,20 @@ function updatePlayButtonUI(isPlaying) {
                 text.innerHTML = appState.animCurrentFrame > 0
                     ? "Continuar"
                     : `<span class="btn-text-full">Iniciar Recorrido</span><span class="btn-text-short">Iniciar</span>`;
+            }
+        }
+    }
+
+    if (btnProf) {
+        if (isPlaying) {
+            btnProf.classList.add("playing");
+            if (iconProf) iconProf.innerHTML = `<svg class="ui-icon" width="11" height="11" viewBox="0 0 24 24" fill="currentColor" stroke="none"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>`;
+            if (textProf) textProf.innerText = "Pausar";
+        } else {
+            btnProf.classList.remove("playing");
+            if (iconProf) iconProf.innerHTML = `<svg class="ui-icon" width="11" height="11" viewBox="0 0 24 24" fill="currentColor" stroke="none"><polygon points="6 4 20 12 6 20 6 4"/></svg>`;
+            if (textProf) {
+                textProf.innerText = appState.animCurrentFrame > 0 ? "Continuar" : "Recorrer";
             }
         }
     }
