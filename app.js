@@ -517,13 +517,14 @@ function setupLayers() {
             "visibility": "visible",
             "text-field": ["get", "nombre"],
             "text-font": ["Open Sans Bold", "Montserrat Medium"],
-            "text-size": 13.5,
-            "text-offset": [0, -1.35],
+            "text-size": 13,
+            "text-offset": [0, -1.25],
             "text-anchor": "bottom",
             "text-pitch-alignment": "viewport",
             "text-rotation-alignment": "viewport",
-            "text-allow-overlap": true,
-            "text-ignore-placement": true
+            "text-allow-overlap": false,
+            "text-ignore-placement": false,
+            "text-optional": false
         },
         filter: ["==", ["to-string", ["coalesce", ["get", "fid"], ""]], "__none__"],
         paint: {
@@ -1886,12 +1887,12 @@ function computeLandmarkAnimationWindows() {
         landmarkMinDists[fid] = minD;
     });
 
-    // 2. Precalcular para cada fotograma la lista de hitos en tránsito (dentro del umbral)
+    // 2. Precalcular para cada fotograma el hito óptimo en tránsito (máximo 1 a la vez para evitar empalmes)
     const frameActiveFids = new Array(frames.length);
 
     for (let i = 0; i < frames.length; i++) {
         const [fLng, fLat] = frames[i].coords;
-        const activeFids = [];
+        const candidates = [];
 
         landmarks.forEach(feat => {
             const fid = String(feat.properties.fid);
@@ -1908,19 +1909,28 @@ function computeLandmarkAnimationWindows() {
             const dist = 12742000 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 
             if (dist <= threshold) {
-                activeFids.push(fid);
+                // Puntuación de proximidad relativa a su punto más cercano en la ruta
+                // Asegura alternancia perfecta y cero empalme cuando hay hitos próximos entre sí
+                const relScore = dist - minD;
+                candidates.push({ fid, relScore, dist });
             }
         });
 
-        frameActiveFids[i] = activeFids;
+        // Asignar exclusivamente el hito óptimo en este fotograma (0 o 1 hito activo)
+        if (candidates.length > 0) {
+            candidates.sort((a, b) => a.relScore - b.relScore);
+            frameActiveFids[i] = [candidates[0].fid];
+        } else {
+            frameActiveFids[i] = [];
+        }
     }
 
     appState.animLandmarkWindows = frameActiveFids;
 }
 
 /**
- * Enciende el halo y la etiqueta del hito o hitos por donde va pasando el observador en la animación,
- * y los apaga inmediatamente una vez que los pasa.
+ * Enciende el halo y la etiqueta del hito por donde va pasando el observador en la animación,
+ * y lo apaga inmediatamente una vez que lo pasa (con cero empalme entre etiquetas adyacentes).
  * @param {number} frameIndex - Índice del fotograma actual
  */
 function syncAnimatedLandmarks(frameIndex) {
@@ -1937,14 +1947,12 @@ function syncAnimatedLandmarks(frameIndex) {
 
     appState.animActiveFids = currentActiveFids.slice();
 
-    // 1. Construir la expresión de filtro MapLibre para el halo y etiqueta activa
+    // 1. Construir la expresión de filtro MapLibre (cero empalme: exactamente 0 o 1 hito a la vez)
     let filterExpr;
     if (currentActiveFids.length === 0) {
         filterExpr = ["==", ["to-string", ["coalesce", ["get", "fid"], ""]], "__none__"];
-    } else if (currentActiveFids.length === 1) {
-        filterExpr = ["==", ["to-string", ["coalesce", ["get", "fid"], ""]], String(currentActiveFids[0])];
     } else {
-        filterExpr = ["any", ...currentActiveFids.map(f => ["==", ["to-string", ["coalesce", ["get", "fid"], ""]], String(f)])];
+        filterExpr = ["==", ["to-string", ["coalesce", ["get", "fid"], ""]], String(currentActiveFids[0])];
     }
 
     // 2. Aplicar el filtro a las capas nativas de resalte en WebGL
