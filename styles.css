@@ -262,6 +262,12 @@ html, body {
 }
 
 /* Control de escala métrica estilizado para modo oscuro en esquina inferior derecha */
+.maplibregl-ctrl-bottom-right {
+    margin-right: 12px !important;
+    margin-bottom: 10px !important;
+    z-index: 10 !important;
+}
+
 .maplibregl-ctrl-scale {
     background: rgba(15, 23, 42, 0.88) !important;
     backdrop-filter: blur(12px) !important;
@@ -317,7 +323,7 @@ html, body {
     top: 10px;
     right: 12px;
     width: 336px;
-    max-height: calc(100vh - 24px);
+    max-height: calc(100vh - 62px);
     background: var(--panel-bg);
     backdrop-filter: blur(18px);
     -webkit-backdrop-filter: blur(18px);
@@ -350,7 +356,7 @@ html, body {
     top: 10px;
     left: 48px;
     width: 324px;
-    max-height: calc(100vh - 20px);
+    max-height: calc(100vh - 62px);
     background: var(--panel-bg);
     backdrop-filter: blur(18px);
     -webkit-backdrop-filter: blur(18px);
@@ -458,12 +464,69 @@ html, body {
     padding: 8px 10px;
     display: flex;
     flex-direction: column;
+    transition: var(--transition-fast);
+}
+
+.stat-card:hover {
+    background: var(--card-bg-hover);
+    border-color: rgba(255, 255, 255, 0.14);
+}
+
+.stat-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px;
 }
 
 .stat-value {
-    font-size: 14px;
+    font-size: 13.5px;
     font-weight: 800;
     color: var(--text-primary);
+    line-height: 1.2;
+}
+
+.stat-sym {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+/* Símbolos cartográficos para las tarjetas de estadísticas */
+.stat-sym-line {
+    width: 14px;
+    height: 3.5px;
+    background: var(--color-route);
+    border-radius: 2px;
+    box-shadow: 0 0 8px rgba(56, 189, 248, 0.8), 0 0 2px #38bdf8;
+}
+
+.stat-sym-polygon-bldg {
+    width: 10px;
+    height: 10px;
+    background: #1e293b;
+    border: 1.5px solid #475569;
+    border-radius: 2.5px;
+    box-shadow: 0 0 4px rgba(71, 85, 105, 0.5);
+}
+
+.stat-sym-polygon-env {
+    width: 10px;
+    height: 10px;
+    background: rgba(239, 68, 68, 0.6);
+    border: 1.5px solid #f87171;
+    border-radius: 2.5px;
+    box-shadow: 0 0 6px rgba(239, 68, 68, 0.5);
+}
+
+.stat-sym-point-ref {
+    width: 9px;
+    height: 9px;
+    background: var(--color-landmark);
+    border: 2px solid #0f172a;
+    border-radius: 50%;
+    box-shadow: 0 0 6px rgba(251, 191, 36, 0.7);
 }
 
 .stat-label {
@@ -471,7 +534,7 @@ html, body {
     color: var(--text-muted);
     text-transform: uppercase;
     letter-spacing: 0.04em;
-    margin-top: 1px;
+    margin-top: 2px;
 }
 
 /* --------------------------------------------------------------------------
@@ -2300,7 +2363,7 @@ body.measuring-active .maplibregl-canvas {
         bottom: auto;
         left: auto;
         width: min(310px, calc(100vw - 16px));
-        max-height: calc(100vh - 60px);
+        max-height: calc(100vh - 105px);
         z-index: 1000;
     }
     #main-panel.collapsed {
@@ -2329,7 +2392,7 @@ body.measuring-active .maplibregl-canvas {
         left: 8px;
         right: 8px;
         width: calc(100vw - 16px);
-        max-height: calc(100vh - 60px);
+        max-height: calc(100vh - 105px);
         z-index: 1002;
     }
 
